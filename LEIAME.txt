@@ -1,0 +1,46 @@
+SISTEMA LTCAT - uso local
+
+COMO ABRIR
+  Dê duplo clique em "Abrir Sistema LTCAT.bat". O programa abre no navegador (endereço local, não vai para a internet).
+  Para encerrar, feche a janela preta.
+
+O QUE FAZ
+  Laudos ........ lista, edita, duplica, exclui e gera o PDF de cada função.
+  Editar laudo .. identificação, ambiente/atividades, ruído (dose e tempo calculam o NE), calor, vibração,
+                  agentes químicos (sem exposição / qualitativo / resultados de laboratório), EPC/EPI e síntese.
+  Empresas ...... dados da empresa, endereço, rodapé e logo.
+  Signatário .... nome, título e registro do engenheiro.
+  Ler documentos  envia PDF/Word de laudos anteriores ou avaliações; extrai o texto (OCR em PDF digitalizado)
+                  para localizar medições e copiar para o editor.
+
+ONDE FICAM OS DADOS
+  dados\laudos ..... um arquivo por laudo (faça backup desta pasta)
+  dados\empresas ... empresas
+  dados\saida ...... PDFs gerados
+  imagens\ ......... logos
+
+LEITURA AUTOMATICA DE DOCUMENTOS (Fase 2)
+  1) Menu Configuracoes: cole a chave da API da Anthropic (fica so neste computador, em dados\config.json) e clique em Testar conexao.
+  2) Menu Ler documentos: envie o PDF/Word. PDF digitalizado: escolha as paginas e se vao como imagem (melhor para tabelas) ou OCR local.
+  3) Clique em Extrair com IA. O conteudo e enviado a API da Anthropic. Sem chave, use o "Modo manual" (cole o JSON de uma conversa com a IA).
+  4) Confira as tabelas (funcoes, ruido, quimicos, calor...), desmarque/corrija o que estiver errado e aplique ao laudo escolhido.
+  5) Cada dado aplicado grava a origem (documento e data). Se a data do documento for diferente da data do laudo, o editor mostra um alerta.
+
+LEITURA LOCAL (sem IA, sem internet)
+  Em "Ler documentos", depois de enviar o arquivo, clique em "Leitura local (sem IA)".
+  Reconhece: LTCAT no formato City/STU (funcao, setor, atividades, ruido, AREN/VDVR) e avaliacoes quimicas em tabelas (formato Toximaster).
+  Confira as tabelas e use "Aplicar ao laudo" (laudo existente) ou "Criar laudo novo" (monta um laudo novo com os dados lidos).
+  PDF digitalizado (ex.: LTCAT STU 2009) nao e lido pela leitura local: use a leitura por IA (com chave) ou peca ajuda.
+
+MONTAR LAUDO (assistente de montagem)
+  Menu "Montar laudo": escolha empresa, funcao e data; envie TODOS os documentos da funcao (PDF, Word, texto, fotos de planilhas).
+  "Montar com IA": a IA le tudo junto e redige o rascunho completo (precisa da chave em Configuracoes; o conteudo e enviado a API).
+  "Montar sem IA": usa so a leitura local dos formatos conhecidos; deixa pendencias para o que nao consegue redigir.
+  O rascunho mostra PENDENCIAS E ALERTAS (ruido acima do limite/nivel de acao, quimicos acima do Nivel de Acao ou do limite,
+  dados de documentos de outro ano, campos vazios). Confira, previsualize o PDF e salve; depois ajuste no Editor.
+  Para PDFs muito grandes (ex.: LTCAT STU, 261 MB) o limite de envio foi ampliado; reinicie o programa para valer.
+
+TEXTOS DO LAUDO (edicao de qualquer texto)
+  Em "Editar laudo", aba "Textos do laudo": lista todos os textos que o sistema redige automaticamente (fundamentacao, objetivo, diligencia,
+  metodologias, conclusao do ruido, biologicos, conclusao, encerramento etc.). Edite o que precisar; o texto editado vale so naquele laudo.
+  Para voltar ao texto automatico, apague tudo na caixa e salve. Textos editados nao acompanham mudancas nos dados (revise-os se alterar medicoes).

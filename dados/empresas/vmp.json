@@ -1,0 +1,13 @@
+{
+ "id": "vmp",
+ "nome_curto": "VMP",
+ "razao": "Viação Metrópole Paulista S/A",
+ "endereco": "AVENIDA RAGUEB CHOHFI, 6.300 - JARDIM PEDRA BRANCA - SÃO PAULO - SP",
+ "endereco_curto": "AVENIDA RAGUEB CHOHFI, 6.300",
+ "rodape": "AVENIDA RAGUEB CHOHFI, 6.300 - JARDIM PEDRA BRANCA - SÃO PAULO - SP",
+ "cnpj": "31.974.104/0001-20",
+ "cnae": "4921-3/01 - Transporte Rodoviário Coletivo de Passageiros",
+ "grau_risco": "3",
+ "cidade": "Iguatemi",
+ "logo": "imagens/logo_vmp.jpg"
+}

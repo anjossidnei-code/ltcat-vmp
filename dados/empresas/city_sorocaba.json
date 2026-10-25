@@ -1,0 +1,13 @@
+{
+ "id": "city_sorocaba",
+ "nome_curto": "City Transporte Urbano Global Ltda",
+ "razao": "CITY TRANSPORTE URBANO GLOBAL LTDA.",
+ "endereco": "Avenida Dr. Armando Pannunzio, 2085 – Cerrado – Sorocaba/SP – CEP 18.050-000",
+ "endereco_curto": "Avenida Dr. Armando Pannunzio, 2085 – Sorocaba/SP",
+ "rodape": "Av. Dr. Armando Pannunzio, 2085 – Cerrado – Sorocaba – SP, CEP: 18050-000",
+ "cnpj": "36.573.767/0001-57",
+ "cnae": "4921-3/01 – Transporte Rodoviário Coletivo de Passageiros, com Itinerário Fixo, Municipal",
+ "grau_risco": "3",
+ "cidade": "Sorocaba",
+ "logo": "imagens/logo_city_sorocaba.jpg"
+}

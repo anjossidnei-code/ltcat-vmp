@@ -1,0 +1,7 @@
+streamlit
+pandas
+reportlab
+pymupdf
+pillow
+python-docx
+anthropic
