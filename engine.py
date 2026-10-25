@@ -50,11 +50,23 @@ _cams = {}
 for _nome, _lista in _FONTES.items():
     _cams[_nome] = _1o_existente([os.path.join(_AQUI, "fonts", f) for f in _lista[:2]] + _lista[2:])
 _base = _cams["Cal"] or _1o_existente(list(_cams.values()))
+# Se nenhuma fonte em arquivo for encontrada (caso do servidor Linux do Streamlit),
+# usa a fonte interna Helvetica (embutida no reportlab) sob os mesmos nomes — assim o
+# PDF SEMPRE é gerado, nunca dá "no afm found".
+_FALLBACK = {"Cal": "Helvetica", "Cal-B": "Helvetica-Bold",
+             "Cal-I": "Helvetica-Oblique", "Cal-BI": "Helvetica-BoldOblique"}
 for _nome in ("Cal", "Cal-B", "Cal-I", "Cal-BI"):
     _c = _cams[_nome] or _base
+    _ok = False
     if _c:
         try:
             pdfmetrics.registerFont(TTFont(_nome, _c))
+            _ok = True
+        except Exception:
+            _ok = False
+    if not _ok:
+        try:
+            pdfmetrics.registerFont(pdfmetrics.Font(_nome, _FALLBACK[_nome], "WinAnsiEncoding"))
         except Exception:
             pass
 pdfmetrics.registerFontFamily("Cal", normal="Cal", bold="Cal-B", italic="Cal-I", boldItalic="Cal-BI")
