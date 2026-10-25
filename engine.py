@@ -18,10 +18,45 @@ from reportlab.platypus import (BaseDocTemplate, PageTemplate, Frame, Paragraph,
 from reportlab.pdfgen import canvas
 
 F = FONTDIR[0]
-pdfmetrics.registerFont(TTFont("Cal", F + "calibri.ttf"))
-pdfmetrics.registerFont(TTFont("Cal-B", F + "calibrib.ttf"))
-pdfmetrics.registerFont(TTFont("Cal-I", F + "calibrii.ttf"))
-pdfmetrics.registerFont(TTFont("Cal-BI", F + "calibriz.ttf"))
+
+# Carregamento robusto das fontes: funciona no PC (Calibri do Windows) E na nuvem
+# (servidor Linux do Streamlit, que não tem Calibri — usa DejaVu/Liberation). Para cada
+# estilo tenta, em ordem: pasta local 'fonts' (Calibri ou Carlito) -> Calibri do Windows
+# -> DejaVu/Liberation do Linux. Se faltar o arquivo exato de um estilo, reusa o regular,
+# evitando que o 'import engine' quebre por causa de fonte ausente.
+_AQUI = os.path.dirname(os.path.abspath(__file__))
+
+def _1o_existente(caminhos):
+    for c in caminhos:
+        if c and os.path.exists(c):
+            return c
+    return None
+
+_FONTES = {
+    "Cal":    ["calibri.ttf",  "Carlito-Regular.ttf",    "C:/Windows/Fonts/calibri.ttf",
+               "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+               "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"],
+    "Cal-B":  ["calibrib.ttf", "Carlito-Bold.ttf",       "C:/Windows/Fonts/calibrib.ttf",
+               "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+               "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"],
+    "Cal-I":  ["calibrii.ttf", "Carlito-Italic.ttf",     "C:/Windows/Fonts/calibrii.ttf",
+               "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+               "/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf"],
+    "Cal-BI": ["calibriz.ttf", "Carlito-BoldItalic.ttf", "C:/Windows/Fonts/calibriz.ttf",
+               "/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf",
+               "/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf"],
+}
+_cams = {}
+for _nome, _lista in _FONTES.items():
+    _cams[_nome] = _1o_existente([os.path.join(_AQUI, "fonts", f) for f in _lista[:2]] + _lista[2:])
+_base = _cams["Cal"] or _1o_existente(list(_cams.values()))
+for _nome in ("Cal", "Cal-B", "Cal-I", "Cal-BI"):
+    _c = _cams[_nome] or _base
+    if _c:
+        try:
+            pdfmetrics.registerFont(TTFont(_nome, _c))
+        except Exception:
+            pass
 pdfmetrics.registerFontFamily("Cal", normal="Cal", bold="Cal-B", italic="Cal-I", boldItalic="Cal-BI")
 
 NAVY = colors.HexColor("#1F3864")
