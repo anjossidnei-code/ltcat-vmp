@@ -31,11 +31,12 @@ st.set_page_config(page_title="SMA System · LTCAT", page_icon="🛡️", layout
 # ------------------------------------------------------------------ aparência (identidade do SMA System)
 ESTILO = """
 <style>
-:root{--azul:#042C59;--azul2:#0170A3;--ciano:#01A0D6;--linha:#DCE3EE;--fundo:#F3F6FA;--texto:#1B2A41;--suave:#5D6B82}
+:root{--azul:#042C59;--azul2:#0170A3;--ciano:#01A0D6;--linha:#B9C7DB;--fundo:#DDE5F0;--texto:#1B2A41;--suave:#5D6B82}
 /* esconde Fork / GitHub / menu / rodapé do Streamlit */
 #MainMenu,footer,[data-testid="stToolbar"],[data-testid="stDecoration"],[data-testid="stStatusWidget"]{display:none !important;visibility:hidden !important}
 [data-testid="stHeader"]{background:transparent;height:2.2rem}
 .block-container{padding-top:1.6rem;padding-bottom:3rem;max-width:1280px}
+.stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background:var(--fundo) !important}
 /* títulos */
 h1{color:var(--azul);font-weight:800;letter-spacing:-.3px;font-size:1.75rem !important;padding:0 0 .55rem !important;margin-bottom:1.1rem;border-bottom:3px solid var(--azul)}
 h2,h3{color:var(--azul);font-weight:700}
@@ -71,7 +72,7 @@ h5{color:var(--azul);font-weight:700;margin:0 0 .4rem;font-size:.95rem !importan
 .stButton>button[kind="primary"],.stFormSubmitButton>button[kind="primary"],.stDownloadButton>button[kind="primary"]{background:var(--azul2);border-color:var(--azul2);color:#fff}
 .stButton>button[kind="primary"]:hover,.stFormSubmitButton>button[kind="primary"]:hover{background:var(--azul);border-color:var(--azul);color:#fff}
 /* campos */
-[data-baseweb="input"],[data-baseweb="select"]>div,[data-baseweb="textarea"]{border-radius:8px !important;background:#fff !important;border:1px solid var(--linha) !important}
+[data-baseweb="input"],[data-baseweb="select"]>div,[data-baseweb="textarea"]{border-radius:8px !important;background:#fff !important;border:1px solid var(--linha) !important;box-shadow:0 1px 2px rgba(4,44,89,.06)}
 [data-baseweb="input"]:focus-within,[data-baseweb="select"]>div:focus-within,[data-baseweb="textarea"]:focus-within{border-color:var(--azul2) !important;box-shadow:0 0 0 3px rgba(1,112,163,.14) !important}
 label p,[data-testid="stWidgetLabel"] p{color:var(--suave);font-size:.82rem;font-weight:600}
 /* abas */
