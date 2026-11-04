@@ -5,3 +5,5 @@ pymupdf
 pillow
 python-docx
 anthropic
+requests
+

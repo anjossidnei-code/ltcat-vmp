@@ -26,7 +26,100 @@ os.makedirs(D_OUT, exist_ok=True)
 # Sem chave da Anthropic configurada os recursos de IA ficam ocultos (publicacao sem IA).
 IA_ATIVA = bool(ex_.chave_api())
 
-st.set_page_config(page_title="Sistema LTCAT", page_icon="📄", layout="wide")
+st.set_page_config(page_title="SMA System · LTCAT", page_icon="🛡️", layout="wide", initial_sidebar_state="expanded")
+
+# ------------------------------------------------------------------ aparência (identidade do SMA System)
+ESTILO = """
+<style>
+:root{--azul:#042C59;--azul2:#0170A3;--ciano:#01A0D6;--linha:#DCE3EE;--fundo:#F3F6FA;--texto:#1B2A41;--suave:#5D6B82}
+/* esconde Fork / GitHub / menu / rodapé do Streamlit */
+#MainMenu,footer,[data-testid="stToolbar"],[data-testid="stDecoration"],[data-testid="stStatusWidget"]{display:none !important;visibility:hidden !important}
+[data-testid="stHeader"]{background:transparent;height:2.2rem}
+.block-container{padding-top:1.6rem;padding-bottom:3rem;max-width:1280px}
+/* títulos */
+h1{color:var(--azul);font-weight:800;letter-spacing:-.3px;font-size:1.75rem !important;padding:0 0 .55rem !important;margin-bottom:1.1rem;border-bottom:3px solid var(--azul)}
+h2,h3{color:var(--azul);font-weight:700}
+h5{color:var(--azul);font-weight:700;margin:0 0 .4rem;font-size:.95rem !important;text-transform:uppercase;letter-spacing:.5px}
+/* menu lateral */
+[data-testid="stSidebar"]{background:var(--azul);border-right:0}
+[data-testid="stSidebar"] *{color:#E6EEF9}
+[data-testid="stSidebar"] [role="radiogroup"]{gap:.15rem}
+[data-testid="stSidebar"] [role="radiogroup"] label{padding:.55rem .8rem;border-radius:8px;width:100%;cursor:pointer;transition:background .15s}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover{background:rgba(255,255,255,.08)}
+[data-testid="stSidebar"] [role="radiogroup"] label>div:first-child{display:none}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked){background:var(--azul2);box-shadow:inset 3px 0 0 var(--ciano)}
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) *{color:#fff;font-weight:700}
+.marca{display:flex;align-items:center;gap:.75rem;padding:.3rem .4rem 1.1rem;margin-bottom:.9rem;border-bottom:1px solid rgba(255,255,255,.14)}
+.marca .ic{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--ciano),var(--azul2));display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.marca .nm{font-weight:800;font-size:1.02rem;line-height:1.15;color:#fff}
+.marca .sb{font-size:.72rem;letter-spacing:.9px;text-transform:uppercase;color:#9DB6D6}
+[data-testid="stSidebar"] .stButton>button{background:transparent;border:1px solid rgba(255,255,255,.28)}
+[data-testid="stSidebar"] .stButton>button:hover{background:rgba(255,255,255,.1);border-color:#fff}
+[data-testid="stSidebar"] .stButton>button *{color:#E6EEF9 !important}
+.side-rodape{position:fixed;bottom:.9rem;font-size:.72rem;color:#8FA9CC !important;padding-left:.5rem}
+/* botões */
+.stButton>button,.stDownloadButton>button,.stFormSubmitButton>button{border-radius:8px;font-weight:600;border:1px solid var(--linha);background:#fff;color:var(--azul);padding:.45rem 1rem;transition:all .15s}
+.stButton>button:hover,.stDownloadButton>button:hover{border-color:var(--azul2);color:var(--azul2);background:#F2F8FC}
+.stButton>button[kind="primary"],.stFormSubmitButton>button[kind="primary"],.stDownloadButton>button[kind="primary"]{background:var(--azul2);border-color:var(--azul2);color:#fff}
+.stButton>button[kind="primary"]:hover,.stFormSubmitButton>button[kind="primary"]:hover{background:var(--azul);border-color:var(--azul);color:#fff}
+/* campos */
+[data-baseweb="input"],[data-baseweb="select"]>div,[data-baseweb="textarea"]{border-radius:8px !important;background:#fff !important;border:1px solid var(--linha) !important}
+[data-baseweb="input"]:focus-within,[data-baseweb="select"]>div:focus-within,[data-baseweb="textarea"]:focus-within{border-color:var(--azul2) !important;box-shadow:0 0 0 3px rgba(1,112,163,.14) !important}
+label p,[data-testid="stWidgetLabel"] p{color:var(--suave);font-size:.82rem;font-weight:600}
+/* abas */
+button[role="tab"]{font-weight:600;color:var(--suave)}
+button[role="tab"][aria-selected="true"]{color:var(--azul);font-weight:700}
+[data-baseweb="tab-highlight"]{background:var(--azul2) !important;height:3px}
+/* cartões e blocos */
+[data-testid="stVerticalBlockBorderWrapper"]{background:#fff;border-radius:12px;border:1px solid var(--linha);box-shadow:0 1px 2px rgba(4,44,89,.05)}
+[data-testid="stMetric"]{background:#fff;border:1px solid var(--linha);border-radius:12px;padding:.9rem 1.1rem;box-shadow:0 1px 2px rgba(4,44,89,.05)}
+[data-testid="stMetricLabel"] p{color:var(--suave);font-weight:600;text-transform:uppercase;font-size:.72rem;letter-spacing:.5px}
+[data-testid="stMetricValue"]{color:var(--azul);font-weight:800}
+[data-testid="stExpander"]{background:#fff;border-radius:10px;border:1px solid var(--linha)}
+[data-testid="stDataFrame"]{border:1px solid var(--linha);border-radius:10px;overflow:hidden}
+.login-caixa{max-width:380px;margin:9vh auto 1rem;text-align:center}
+.login-caixa .ic{width:64px;height:64px;border-radius:18px;margin:0 auto 1rem;background:linear-gradient(135deg,var(--ciano),var(--azul2));display:flex;align-items:center;justify-content:center}
+.login-caixa h2{margin:0 0 .2rem}
+.login-caixa p{color:var(--suave);margin:0 0 1rem}
+</style>
+"""
+st.markdown(ESTILO, unsafe_allow_html=True)
+
+# escudo "SMA" (o mesmo ícone do SMA System)
+ICONE_SMA = ('<svg viewBox="0 0 100 128" width="{w}" height="{h}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+             '<path d="M50 5 L95 22 V62 C95 95 74 118 50 128 C26 118 5 95 5 62 V22 Z" fill="none" stroke="#fff" stroke-width="7"/>'
+             '<text x="50" y="82" text-anchor="middle" font-family="Arial,sans-serif" font-size="34" font-weight="800" fill="#fff">SMA</text></svg>')
+
+
+def exige_login():
+    """Na nuvem, o acesso usa o login do SMA System (usuario e senha de administrador).
+    A conferencia e feita no banco (funcao fn_ltcat_acesso); nenhuma chave secreta e necessaria."""
+    if store.modo() == "local" or st.session_state.get("_ltcat_user"):
+        return
+    st.markdown('<div class="login-caixa"><div class="ic">' + ICONE_SMA.format(w=30, h=38) + '</div>'
+                '<h2>SMA System</h2><p>Módulo LTCAT — entre com seu usuário do SMA System</p></div>', unsafe_allow_html=True)
+    _, meio, _ = st.columns([1, 1, 1])
+    with meio:
+        with st.form("login_ltcat"):
+            usuario = st.text_input("Usuário")
+            senha = st.text_input("Senha", type="password")
+            entrou = st.form_submit_button("Entrar", type="primary", width='stretch')
+        if entrou:
+            try:
+                nome = store.login(usuario.strip(), senha)
+            except Exception as ex:
+                st.error("Não consegui validar o acesso: " + str(ex) + " — confira se o arquivo 01_ltcat_dados.sql já foi executado no Supabase.")
+                st.stop()
+            if nome:
+                st.session_state["_ltcat_user"] = usuario.strip()
+                st.session_state["_ltcat_senha"] = senha
+                st.session_state["_ltcat_nome"] = nome
+                st.rerun()
+            st.error("Usuário ou senha incorretos (ou sem permissão de administrador).")
+    st.stop()
+
+
+exige_login()
 
 MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
 
@@ -122,8 +215,20 @@ def ir_editar(i, gerar=False, novo_emp=None):
         st.session_state.novo_emp = novo_emp
 
 
-pagina = st.sidebar.radio("Menu", ["Laudos", "Montar laudo", "Editar laudo", "Empresas", "Signatário", "Ler documentos", "Configurações"], key="pagina")
-st.sidebar.caption("Sistema LTCAT · uso local")
+ICONES_MENU = {"Laudos": "📑", "Montar laudo": "🧩", "Editar laudo": "✏️", "Empresas": "🏢", "Signatário": "✍️",
+               "Ler documentos": "🔎", "Configurações": "⚙️"}
+st.sidebar.markdown('<div class="marca"><div class="ic">' + ICONE_SMA.format(w=22, h=28) + '</div>'
+                    '<div><div class="nm">SMA System</div><div class="sb">Módulo LTCAT</div></div></div>', unsafe_allow_html=True)
+pagina = st.sidebar.radio("Menu", ["Laudos", "Montar laudo", "Editar laudo", "Empresas", "Signatário", "Ler documentos", "Configurações"],
+                          key="pagina", label_visibility="collapsed", format_func=lambda p: f"{ICONES_MENU.get(p, '')}  {p}")
+if store.modo() == "supabase":
+    st.sidebar.markdown('<div class="side-rodape">● Dados salvos na nuvem<br>Usuário: ' + st.session_state.get("_ltcat_nome", "") + '</div>', unsafe_allow_html=True)
+    if st.sidebar.button("Sair", key="sair_ltcat", width='stretch'):
+        for _k in ("_ltcat_user", "_ltcat_senha", "_ltcat_nome"):
+            st.session_state.pop(_k, None)
+        st.rerun()
+else:
+    st.sidebar.markdown('<div class="side-rodape">○ Modo local: arquivos da pasta dados</div>', unsafe_allow_html=True)
 
 if "sel" not in st.session_state:
     st.session_state.sel = None
@@ -134,6 +239,10 @@ if "msg" not in st.session_state:
 if pagina == "Laudos":
     st.title("Laudos")
     L, E = laudos(), empresas()
+    k1, k2, k3 = st.columns(3)
+    k1.metric("Laudos cadastrados", len(L))
+    k2.metric("Empresas", len(E))
+    k3.metric("Funções avaliadas", len({(l.get("empresa_id"), l.get("nome")) for l in L.values()}))
     c1, c2 = st.columns([3, 1])
     with c2:
         if E:
@@ -459,23 +568,34 @@ elif pagina == "Empresas":
     eid = st.selectbox("Empresa", ids, format_func=lambda i: "➕ Nova empresa" if i == "__nova__" else E[i]["nome_curto"])
     e = copy.deepcopy(E.get(eid)) if eid != "__nova__" else {"id": "", "nome_curto": "", "razao": "", "endereco": "", "endereco_curto": "",
                                                               "rodape": "", "cnpj": "", "cnae": "", "grau_risco": "3", "cidade": "", "logo": ""}
-    c1, c2 = st.columns(2)
-    e["nome_curto"] = c1.text_input("Nome curto (cabeçalho das páginas)", e["nome_curto"])
-    e["razao"] = c2.text_input("Razão social", e["razao"])
-    e["cnpj"] = c1.text_input("CNPJ", e["cnpj"])
-    e["grau_risco"] = c2.text_input("Grau de risco", e["grau_risco"])
-    e["cnae"] = st.text_input("CNAE / atividade", e["cnae"])
-    e["endereco"] = st.text_input("Endereço completo (quadro de identificação)", e["endereco"])
-    e["endereco_curto"] = st.text_input("Endereço curto (texto da diligência)", e["endereco_curto"])
-    e["rodape"] = st.text_input("Rodapé das páginas", e["rodape"])
-    e["cidade"] = c1.text_input("Cidade (assinatura)", e["cidade"])
-    st.write("Logo atual:", e.get("logo") or "—")
-    if e.get("logo_b64"):
-        import base64 as _b64
-        st.image(_b64.b64decode(e["logo_b64"]), width=200)
-    elif e.get("logo") and os.path.exists(os.path.join(ROOT, e["logo"])):
-        st.image(os.path.join(ROOT, e["logo"]), width=200)
-    up = st.file_uploader("Trocar logo (PNG ou JPG)", type=["png", "jpg", "jpeg"])
+    with st.container(border=True):
+        st.markdown("##### Identificação da empresa")
+        c1, c2 = st.columns(2)
+        e["nome_curto"] = c1.text_input("Nome curto (cabeçalho das páginas)", e["nome_curto"])
+        e["razao"] = c2.text_input("Razão social", e["razao"])
+        e["cnpj"] = c1.text_input("CNPJ", e["cnpj"])
+        e["grau_risco"] = c2.text_input("Grau de risco", e["grau_risco"])
+        e["cnae"] = st.text_input("CNAE / atividade", e["cnae"])
+    with st.container(border=True):
+        st.markdown("##### Endereço e rodapé do laudo")
+        e["endereco"] = st.text_input("Endereço completo (quadro de identificação)", e["endereco"])
+        c3, c4 = st.columns(2)
+        e["endereco_curto"] = c3.text_input("Endereço curto (texto da diligência)", e["endereco_curto"])
+        e["cidade"] = c4.text_input("Cidade (assinatura)", e["cidade"])
+        e["rodape"] = st.text_input("Rodapé das páginas", e["rodape"])
+    with st.container(border=True):
+        st.markdown("##### Logotipo")
+        cl1, cl2 = st.columns([1, 2])
+        with cl1:
+            if e.get("logo_b64"):
+                import base64 as _b64
+                st.image(_b64.b64decode(e["logo_b64"]), width=200)
+            elif e.get("logo") and os.path.exists(os.path.join(ROOT, e["logo"])):
+                st.image(os.path.join(ROOT, e["logo"]), width=200)
+            else:
+                st.caption("Nenhum logotipo cadastrado.")
+        with cl2:
+            up = st.file_uploader("Trocar logotipo (PNG ou JPG)", type=["png", "jpg", "jpeg"])
     if st.button("💾 Salvar empresa", type="primary"):
         if not e["nome_curto"]:
             st.error("Informe o nome curto.")
@@ -491,9 +611,12 @@ elif pagina == "Empresas":
 elif pagina == "Signatário":
     st.title("Signatário (responsável técnico)")
     sig = store.obter_signatario()
-    sig["nome"] = st.text_input("Nome", sig.get("nome", ""))
-    sig["titulo"] = st.text_input("Título", sig.get("titulo", ""))
-    sig["crea"] = st.text_input("Registro (ex.: CREA 0000000000 - SP)", sig.get("crea", ""))
+    with st.container(border=True):
+        st.markdown("##### Responsável técnico pela assinatura dos laudos")
+        sig["nome"] = st.text_input("Nome", sig.get("nome", ""))
+        sc1, sc2 = st.columns(2)
+        sig["titulo"] = sc1.text_input("Título", sig.get("titulo", ""))
+        sig["crea"] = sc2.text_input("Registro (ex.: CREA 0000000000 - SP)", sig.get("crea", ""))
     if st.button("💾 Salvar", type="primary"):
         store.salvar_signatario(sig)
         st.success("Salvo.")
