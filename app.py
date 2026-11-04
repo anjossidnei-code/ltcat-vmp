@@ -56,6 +56,14 @@ h5{color:var(--azul);font-weight:700;margin:0 0 .4rem;font-size:.95rem !importan
 [data-testid="stSidebar"] .stButton>button{background:transparent;border:1px solid rgba(255,255,255,.28)}
 [data-testid="stSidebar"] .stButton>button:hover{background:rgba(255,255,255,.1);border-color:#fff}
 [data-testid="stSidebar"] .stButton>button *{color:#E6EEF9 !important}
+/* itens do menu (botoes com chave nav_*) */
+[data-testid="stSidebar"] [class*="st-key-nav_"] button{border:0 !important;padding:.55rem .8rem;border-radius:8px;justify-content:flex-start}
+[data-testid="stSidebar"] [class*="st-key-nav_"] button>div,[data-testid="stSidebar"] [class*="st-key-nav_"] button p{width:100%;text-align:left;justify-content:flex-start}
+[data-testid="stSidebar"] [class*="st-key-nav_"] button *{font-weight:600;color:#C9D8EC !important}
+[data-testid="stSidebar"] [class*="st-key-nav_"] button[kind="primary"]{background:var(--azul2) !important;box-shadow:inset 3px 0 0 var(--ciano)}
+[data-testid="stSidebar"] [class*="st-key-nav_"] button[kind="primary"] *{color:#fff !important;font-weight:700}
+[data-testid="stSidebar"] [class*="st-key-nav_"] button[kind="secondary"]:hover{background:rgba(255,255,255,.09)}
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:.25rem}
 .side-rodape{position:fixed;bottom:.9rem;font-size:.72rem;color:#8FA9CC !important;padding-left:.5rem}
 /* botões */
 .stButton>button,.stDownloadButton>button,.stFormSubmitButton>button{border-radius:8px;font-weight:600;border:1px solid var(--linha);background:#fff;color:var(--azul);padding:.45rem 1rem;transition:all .15s}
@@ -219,8 +227,20 @@ ICONES_MENU = {"Laudos": "📑", "Montar laudo": "🧩", "Editar laudo": "✏️
                "Ler documentos": "🔎", "Configurações": "⚙️"}
 st.sidebar.markdown('<div class="marca"><div class="ic">' + ICONE_SMA.format(w=22, h=28) + '</div>'
                     '<div><div class="nm">SMA System</div><div class="sb">Módulo LTCAT</div></div></div>', unsafe_allow_html=True)
-pagina = st.sidebar.radio("Menu", ["Laudos", "Montar laudo", "Editar laudo", "Empresas", "Signatário", "Ler documentos", "Configurações"],
-                          key="pagina", label_visibility="collapsed", format_func=lambda p: f"{ICONES_MENU.get(p, '')}  {p}")
+PAGINAS = ["Laudos", "Montar laudo", "Editar laudo", "Empresas", "Signatário", "Ler documentos", "Configurações"]
+if st.session_state.get("pagina") not in PAGINAS:
+    st.session_state.pagina = "Laudos"
+
+
+def _ir_pagina(p):
+    st.session_state.pagina = p
+
+
+# menu em botões (sem os circulos de "radio"): o item ativo fica em destaque
+for _p in PAGINAS:
+    st.sidebar.button(f"{ICONES_MENU.get(_p, '')}  {_p}", key=f"nav_{_p}", width='stretch',
+                      type="primary" if st.session_state.pagina == _p else "secondary", on_click=_ir_pagina, args=(_p,))
+pagina = st.session_state.pagina
 if store.modo() == "supabase":
     st.sidebar.markdown('<div class="side-rodape">● Dados salvos na nuvem<br>Usuário: ' + st.session_state.get("_ltcat_nome", "") + '</div>', unsafe_allow_html=True)
     if st.sidebar.button("Sair", key="sair_ltcat", width='stretch'):
@@ -467,10 +487,11 @@ elif pagina == "Editar laudo":
 
     # ---- Textos do laudo (todos os textos fixos do modelo, editáveis)
     with tabs[7]:
-        st.write("O sistema redige estes textos automaticamente. Se precisar, **edite qualquer um**: o texto alterado passa a valer neste laudo. "
-                 "Para **voltar ao texto automático**, apague tudo na caixa e salve. Aceita `<b>negrito</b>`, `<i>itálico</i>` e `<br/>`.")
-        st.caption("Atenção: um texto editado deixa de acompanhar as mudanças nos dados (por exemplo, o valor do NE citado na conclusão). "
-                   "Se alterar os dados depois, revise os textos editados.")
+        st.write("O sistema redige estes textos automaticamente. Abra o grupo e **edite o que precisar**: o texto alterado vale só neste laudo. "
+                 "Para **voltar ao texto automático**, apague tudo na caixa e salve.")
+        st.caption("Formatação aceita no texto: `<b>negrito</b>`, `<i>itálico</i>` e `<br/>` (quebra de linha). "
+                   "Atenção: um texto editado deixa de acompanhar as mudanças nos dados (por exemplo, o valor do NE citado na conclusão); "
+                   "se alterar os dados depois, revise os textos editados.")
         ROTULOS = {
             "fundamentacao": "Capa – Fundamentação legal e normativa",
             "objetivo": "2. Objetivo",
@@ -501,17 +522,35 @@ elif pagina == "Editar laudo":
             st.warning(f"Preencha os dados básicos do laudo (função, empresa, ruído) para liberar a edição dos textos. ({e_t})")
         txs = dict(f.get("textos") or {})
         idl = f.get("id") or "novo"
-        for k, padrao_k in padrao.items():
-            atual = txs.get(k) or padrao_k
-            editado = k in txs and txs[k] and txs[k] != padrao_k
-            rot = ROTULOS.get(k, k) + ("  ✏️ editado" if editado else "")
-            novo_v = st.text_area(rot, atual, height=max(90, min(320, 22 * (len(atual) // 95 + 2))), key=f"tx_{idl}_{k}")
-            if not novo_v.strip():
-                txs.pop(k, None)
-            elif novo_v != padrao_k:
-                txs[k] = novo_v
-            else:
-                txs.pop(k, None)
+        GRUPOS = [
+            ("📜 Capa, objetivo e diligência", ["fundamentacao", "objetivo", "diligencia", "exposicao"]),
+            ("🔬 Metodologia", ["met_ruido", "met_calor", "met_vci", "met_quim"]),
+            ("📊 Resultados (ruído, químicos e biológicos)", ["ruido_intro", "ruido_concl", "quim_sem", "bio"]),
+            ("✅ Síntese, conclusão e encerramento", ["sint_nota", "conclusao1", "conclusao2", "encerramento"]),
+        ]
+        usados = {k for _, ks in GRUPOS for k in ks}
+        extras = [k for k in padrao if k not in usados]
+        if extras:
+            GRUPOS.append(("Outros textos", extras))
+        # textos que ja estavam editados (para abrir o grupo certo e mostrar a contagem no titulo)
+        ja_editados = {k for k in padrao if txs.get(k) and txs[k] != padrao[k]}
+        for titulo_g, chaves in GRUPOS:
+            chaves = [k for k in chaves if k in padrao]
+            if not chaves:
+                continue
+            n_ed = sum(1 for k in chaves if k in ja_editados)
+            with st.expander(titulo_g + (f"  ·  ✏️ {n_ed} editado(s)" if n_ed else ""), expanded=bool(n_ed)):
+                for k in chaves:
+                    padrao_k = padrao[k]
+                    atual = txs.get(k) or padrao_k
+                    rot = ROTULOS.get(k, k) + ("  ✏️ editado" if k in ja_editados else "")
+                    novo_v = st.text_area(rot, atual, height=max(90, min(320, 22 * (len(atual) // 95 + 2))), key=f"tx_{idl}_{k}")
+                    if not novo_v.strip():
+                        txs.pop(k, None)
+                    elif novo_v != padrao_k:
+                        txs[k] = novo_v
+                    else:
+                        txs.pop(k, None)
         f["textos"] = txs
         if txs:
             st.info(f"{len(txs)} texto(s) editado(s) neste laudo.")
