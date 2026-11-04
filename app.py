@@ -85,7 +85,7 @@ button[role="tab"][aria-selected="true"]{color:var(--azul);font-weight:700}
 [data-testid="stMetricLabel"] p{color:var(--suave);font-weight:600;text-transform:uppercase;font-size:.72rem;letter-spacing:.5px}
 [data-testid="stMetricValue"]{color:var(--azul);font-weight:800}
 [data-testid="stExpander"]{background:#fff;border-radius:10px;border:1px solid var(--linha)}
-[data-testid="stDataFrame"]{border:1px solid var(--linha);border-radius:10px;overflow:hidden}
+[data-testid="stDataFrame"],[data-testid="stDataEditor"]{border:1.5px solid #8FA3BF;border-radius:10px;overflow:hidden;background:#fff}
 .login-caixa{max-width:380px;margin:9vh auto 1rem;text-align:center}
 .login-caixa .ic{width:64px;height:64px;border-radius:18px;margin:0 auto 1rem;background:linear-gradient(135deg,var(--ciano),var(--azul2));display:flex;align-items:center;justify-content:center}
 .login-caixa h2{margin:0 0 .2rem}
