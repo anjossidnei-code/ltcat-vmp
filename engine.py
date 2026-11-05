@@ -274,15 +274,24 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
         solar = list(c.get("solar") or []) + [False] * len(c["rows"])
         tbs = list(c.get("tbs") or []) + [""] * len(c["rows"])
         tem_solar = any(solar[:len(c["rows"])])
-        ativ = str(c.get("atividade") or "Moderada").lower()
-        lim_txt = {"leve": "30,0", "moderada": "26,7", "pesada": "25,0"}.get(ativ, "26,7")
+        taxa = c.get("taxa_m")
+        if taxa:   # limite pelo Quadro 1 (taxa metabólica M, em W); atividade pelo Quadro 2 — NR-15, Anexo 3 (2019)
+            desc_a = c.get("atividade_desc") or ""
+            lim_txt = c.get("limite") or "26,7"
+            ativ_txt = f"com taxa metabólica de {taxa} W" + (f" ({desc_a})" if desc_a else "") + ", conforme o Quadro 2 do Anexo 3 da NR-15"
+            nota_lim = f"(Quadro 1 do Anexo 3 da NR-15, para a taxa metabólica de {taxa} W, regime contínuo)"
+        else:      # laudos antigos (Leve/Moderada/Pesada)
+            ativ = str(c.get("atividade") or "Moderada").lower()
+            lim_txt = {"leve": "30,0", "moderada": "26,7", "pesada": "25,0"}.get(ativ, "26,7")
+            ativ_txt = f"classificada como {ativ} (taxa metabólica do Quadro 3 da NR-15)"
+            nota_lim = f"(Quadro 1 do Anexo 3 da NR-15 \u2013 atividade {ativ}, regime contínuo)"
         if tem_solar:
             frm = ("O IBUTG foi calculado conforme o ambiente de cada local: sem carga solar, IBUTG = 0,7 × tbn + 0,3 × tg; "
                    "com incidência de calor (carga solar), IBUTG = 0,7 × tbn + 0,1 × tbs + 0,2 × tg.")
         else:
             frm = "O IBUTG foi calculado para ambiente sem carga solar: IBUTG = 0,7 × tbn + 0,3 × tg."
         S += [P("As leituras foram realizadas em " + c.get("data_leitura", DATA) + ", no local de execução das atividades, em regime de trabalho contínuo e atividade "
-                f"classificada como {ativ} (taxa metabólica do Quadro 3 da NR-15). " + frm)]
+                f"{ativ_txt}. " + frm)]
         corpo = c["rows"]
         if tem_solar:
             corpo = [[r[0], r[1], r[2], (tbs[i] if solar[i] and tbs[i] else "\u2014"), r[3], r[4], r[5]] for i, r in enumerate(c["rows"])]
@@ -296,7 +305,7 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
         acima = any("acima" in str(r[5]).lower() for r in c["rows"])
         S += [grid(cab, corpo, larg,
                    shade=[(col_res, i + 1, WARN if "acima" in str(r[5]).lower() else OKC) for i, r in enumerate(c["rows"])]), Spacer(1, 3),
-              P(f"<b>Nota:</b> adotou-se o limite de {lim_txt} °C (Quadro 1 do Anexo 3 da NR-15 \u2013 atividade {ativ}, regime contínuo). " +
+              P(f"<b>Nota:</b> adotou-se o limite de {lim_txt} °C {nota_lim}. " +
                 (f"O maior IBUTG medido ({c['max']} °C) ficou acima do limite em pelo menos uma leitura." if acima
                  else f"O maior IBUTG medido ({c['max']} °C) ficou abaixo do limite."), small)]
     S += [P("<b>Observação:</b> " + c["concl"]), P("7.3 \u2013 Vibração", h2)]

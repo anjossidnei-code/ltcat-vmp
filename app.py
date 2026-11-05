@@ -207,8 +207,61 @@ def novo_laudo(empresa_id):
     }
 
 
-# Limites de IBUTG (°C) para regime de trabalho contínuo — NR-15, Anexo 3, Quadro 1
-CALOR_LIMITES = {"Leve": 30.0, "Moderada": 26.7, "Pesada": 25.0}
+# NR-15, Anexo 3 (2019) — Quadro 1: limite de IBUTG (°C) conforme a taxa metabólica M (W), regime contínuo.
+# Os valores de M estao na ordem do quadro; o limite começa em 33,7 °C (M=100 W) e cai 0,1 °C a cada linha, até 24,7 °C (M=606 W).
+CALOR_M = [100, 102, 104, 106, 108, 110, 112, 115, 117, 119, 122, 124, 127, 129, 132, 135, 137, 140, 143, 146, 149, 152, 155, 158, 161, 165,
+           168, 171, 175, 178, 182, 186, 189, 193, 197, 201, 205, 209, 214, 218, 222, 227, 231, 236, 241, 246, 251, 256, 261, 266, 272, 277,
+           283, 289, 294, 300, 306, 313, 319, 325, 332, 339, 346, 353, 360, 367, 374, 382, 390, 398, 406, 414, 422, 431, 440, 448, 458, 467,
+           476, 486, 496, 506, 516, 526, 537, 548, 559, 570, 582, 594, 606]
+CALOR_QUADRO1 = [(m, round(33.7 - 0.1 * i, 1)) for i, m in enumerate(CALOR_M)]
+
+# NR-15, Anexo 3 (2019) — Quadro 2: taxa metabólica (W) por tipo de atividade
+CALOR_ATIVIDADES = [
+    ("Sentado · Em repouso", 100), ("Sentado · Trabalho leve com as mãos", 126), ("Sentado · Trabalho moderado com as mãos", 153),
+    ("Sentado · Trabalho pesado com as mãos", 171), ("Sentado · Trabalho leve com um braço", 162), ("Sentado · Trabalho moderado com um braço", 198),
+    ("Sentado · Trabalho pesado com um braço", 234), ("Sentado · Trabalho leve com dois braços", 216), ("Sentado · Trabalho moderado com dois braços", 252),
+    ("Sentado · Trabalho pesado com dois braços", 288), ("Sentado · Trabalho leve com braços e pernas", 324),
+    ("Sentado · Trabalho moderado com braços e pernas", 441), ("Sentado · Trabalho pesado com braços e pernas", 603),
+    ("Em pé, agachado ou ajoelhado · Em repouso", 126), ("Em pé, agachado ou ajoelhado · Trabalho leve com as mãos", 153),
+    ("Em pé, agachado ou ajoelhado · Trabalho moderado com as mãos", 180), ("Em pé, agachado ou ajoelhado · Trabalho pesado com as mãos", 198),
+    ("Em pé, agachado ou ajoelhado · Trabalho leve com um braço", 189), ("Em pé, agachado ou ajoelhado · Trabalho moderado com um braço", 225),
+    ("Em pé, agachado ou ajoelhado · Trabalho pesado com um braço", 261), ("Em pé, agachado ou ajoelhado · Trabalho leve com dois braços", 243),
+    ("Em pé, agachado ou ajoelhado · Trabalho moderado com dois braços", 279), ("Em pé, agachado ou ajoelhado · Trabalho pesado com dois braços", 315),
+    ("Em pé, agachado ou ajoelhado · Trabalho leve com o corpo", 351), ("Em pé, agachado ou ajoelhado · Trabalho moderado com o corpo", 468),
+    ("Em pé, agachado ou ajoelhado · Trabalho pesado com o corpo", 630),
+    ("Em pé, em movimento · Andando no plano, sem carga, 2 km/h", 198), ("Em pé, em movimento · Andando no plano, sem carga, 3 km/h", 252),
+    ("Em pé, em movimento · Andando no plano, sem carga, 4 km/h", 297), ("Em pé, em movimento · Andando no plano, sem carga, 5 km/h", 360),
+    ("Em pé, em movimento · Andando no plano, com carga de 10 kg, 4 km/h", 333), ("Em pé, em movimento · Andando no plano, com carga de 30 kg, 4 km/h", 450),
+    ("Em pé, em movimento · Correndo no plano, 9 km/h", 787), ("Em pé, em movimento · Correndo no plano, 12 km/h", 873),
+    ("Em pé, em movimento · Correndo no plano, 15 km/h", 990),
+    ("Em pé, em movimento · Subindo rampa, sem carga, 5° de inclinação, 4 km/h", 324),
+    ("Em pé, em movimento · Subindo rampa, sem carga, 15° de inclinação, 3 km/h", 378),
+    ("Em pé, em movimento · Subindo rampa, sem carga, 25° de inclinação, 3 km/h", 540),
+    ("Em pé, em movimento · Subindo rampa, com carga de 20 kg, 15° de inclinação, 4 km/h", 486),
+    ("Em pé, em movimento · Subindo rampa, com carga de 20 kg, 25° de inclinação, 4 km/h", 738),
+    ("Em pé, em movimento · Descendo rampa (5 km/h) sem carga, 5° de inclinação", 243),
+    ("Em pé, em movimento · Descendo rampa (5 km/h) sem carga, 15° de inclinação", 252),
+    ("Em pé, em movimento · Descendo rampa (5 km/h) sem carga, 25° de inclinação", 324),
+    ("Em pé, em movimento · Subindo escada (80 degraus/min, degrau de 0,17 m), sem carga", 522),
+    ("Em pé, em movimento · Subindo escada (80 degraus/min, degrau de 0,17 m), com carga de 20 kg", 648),
+    ("Em pé, em movimento · Descendo escada (80 degraus/min, degrau de 0,17 m), sem carga", 279),
+    ("Em pé, em movimento · Descendo escada (80 degraus/min, degrau de 0,17 m), com carga de 20 kg", 400),
+    ("Em pé, em movimento · Trabalho moderado de braços (ex.: varrer, trabalho em almoxarifado)", 320),
+    ("Em pé, em movimento · Trabalho moderado de levantar ou empurrar", 349),
+    ("Em pé, em movimento · Empurrar carrinhos de mão, no mesmo plano, com carga", 391),
+    ("Em pé, em movimento · Carregar pesos ou movimentos vigorosos com os braços (ex.: trabalho com foice)", 495),
+]
+# laudos antigos usavam Leve/Moderada/Pesada (30,0 / 26,7 / 25,0 °C): equivalem a M = 209 / 406 / 570 W no Quadro 1
+CALOR_M_LEGADO = {"Leve": 209, "Moderada": 406, "Pesada": 570}
+
+
+def limite_ibutg(m):
+    """Limite de IBUTG (°C) para a taxa metabólica M (W) — Quadro 1. Para M que não consta no quadro, adota o do M imediatamente
+    superior (o mais restritivo). Abaixo de 100 W usa 33,7 °C; acima de 606 W usa 24,7 °C."""
+    for mv, lim in CALOR_QUADRO1:
+        if m <= mv:
+            return lim
+    return CALOR_QUADRO1[-1][1]
 
 
 def calc_ibutg(tbn, tg, tbs=None, solar=False):
@@ -411,16 +464,39 @@ elif pagina == "Editar laudo":
     # ---- Calor
     with tabs[3]:
         c = f["calor"]
-        usa_tab = st.checkbox("Informar leituras de IBUTG (tabela)", value=bool(c.get("rows")))
+        kid = f.get("id") or "novo"   # separa o estado dos campos de cada laudo
+        usa_tab = st.checkbox("Informar leituras de IBUTG (tabela)", value=bool(c.get("rows")), key=f"calor_usa_{kid}")
         if usa_tab:
             cc1, cc2 = st.columns(2)
             c["data_leitura"] = cc1.text_input("Data das leituras", c.get("data_leitura", ""))
-            ativ_atual = c.get("atividade") if c.get("atividade") in CALOR_LIMITES else "Moderada"
-            ativ_nome = cc2.selectbox("Tipo de atividade (define o limite · NR-15, Anexo 3, regime contínuo)", list(CALOR_LIMITES),
-                                      index=list(CALOR_LIMITES).index(ativ_atual),
-                                      format_func=lambda k: f"{k} — limite de {fmt(CALOR_LIMITES[k], 1)} °C")
-            c["atividade"] = ativ_nome
-            limite = CALOR_LIMITES[ativ_nome]
+            # taxa metabolica M (W): escolhida pela atividade (Quadro 2) ou informada; o limite vem do Quadro 1
+            m_salvo = c.get("taxa_m") or CALOR_M_LEGADO.get(c.get("atividade"))
+            desc_salva = c.get("atividade_desc") or ""
+            nomes_ativ = [a_[0] for a_ in CALOR_ATIVIDADES]
+            modo_m = cc2.radio("Taxa metabólica (M)", ["Escolher a atividade (Quadro 2)", "Informar M em watts"], horizontal=True,
+                               index=1 if (m_salvo and desc_salva not in nomes_ativ) else 0, key=f"calor_modo_m_{kid}")
+            if modo_m.startswith("Escolher"):
+                opcoes = [-1] + list(range(len(CALOR_ATIVIDADES)))
+                i0 = (nomes_ativ.index(desc_salva) + 1) if desc_salva in nomes_ativ else 0
+                esc = st.selectbox("Atividade desenvolvida no local (NR-15, Anexo 3, Quadro 2)", opcoes, index=i0, key=f"calor_atividade_{kid}",
+                                   format_func=lambda i: "— selecione a atividade —" if i < 0 else f"{CALOR_ATIVIDADES[i][0]} — {CALOR_ATIVIDADES[i][1]} W")
+                if esc < 0:
+                    m_val, desc_ativ = 406, ""
+                    st.warning("Atividade não selecionada: por enquanto está usando M = 406 W (limite de 26,7 °C). "
+                               "Escolha a atividade para o limite correto.")
+                else:
+                    desc_ativ, m_val = CALOR_ATIVIDADES[esc]
+            else:
+                m_val = cc2.number_input("Taxa metabólica M (W)", min_value=50.0, max_value=1200.0, value=float(m_salvo or 406), step=1.0,
+                                         key=f"calor_m_w_{kid}")
+                desc_ativ = ""
+            limite = limite_ibutg(m_val)
+            c["taxa_m"], c["atividade_desc"], c["limite"] = int(round(m_val)), desc_ativ, fmt(limite, 1)
+            c.pop("atividade", None)
+            st.info(f"Taxa metabólica **{int(round(m_val))} W** → limite de IBUTG de **{fmt(limite, 1)} °C** "
+                    f"(NR-15, Anexo 3, Quadro 1, regime contínuo).")
+            if m_val > 606:
+                st.warning("M acima de 606 W: o Quadro 1 não traz valor acima disso; foi usado o menor limite do quadro (24,7 °C). Avalie a situação.")
             st.caption("Informe **tbn** e **tg** (e **tbs** quando houver incidência de calor/carga solar): o **IBUTG é calculado automaticamente**. "
                        "Sem incidência: IBUTG = 0,7·tbn + 0,3·tg. Com incidência: IBUTG = 0,7·tbn + 0,1·tbs + 0,2·tg.")
             # monta a tabela de entrada a partir do que ja esta salvo no laudo
@@ -435,7 +511,7 @@ elif pagina == "Editar laudo":
                 base_rows = [["", False, "", "", "", ""]]
             base = pd.DataFrame(base_rows, columns=["Local", "Com incidência de calor", "tbn (°C)", "tg (°C)", "tbs (°C)", "IBUTG informado (°C)"])
             base["Com incidência de calor"] = base["Com incidência de calor"].astype(bool)
-            ed = st.data_editor(base, num_rows="dynamic", width='stretch', key="calor_ed", column_config={
+            ed = st.data_editor(base, num_rows="dynamic", width='stretch', key=f"calor_ed_{kid}", column_config={
                 "Com incidência de calor": st.column_config.CheckboxColumn(
                     "Com incidência de calor", help="Marque se há carga solar/incidência de calor: usa o tbs na fórmula.", default=False),
                 "IBUTG informado (°C)": st.column_config.TextColumn(
