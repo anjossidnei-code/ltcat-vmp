@@ -206,7 +206,8 @@ def aplicar_calor(f, itens, data_leitura=""):
         return None
     c = f.get("calor", {})
     vals = [_num(r[3]) for r in rows if _num(r[3]) is not None]
-    c.update({"rows": rows, "max": _fmt(max(vals), 2) if vals else "", "data_leitura": data_leitura or c.get("data_leitura", "")})
+    c.update({"rows": rows, "max": _fmt(max(vals), 2) if vals else "", "data_leitura": data_leitura or c.get("data_leitura", ""),
+              "solar": [False] * len(rows), "tbs": [""] * len(rows)})
     f["calor"] = c
     return f"Calor: {len(rows)} leitura(s) de IBUTG"
 

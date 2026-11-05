@@ -271,14 +271,34 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
           P("7.2 \u2013 Exposição ao Calor", h2)]
     c = f["calor"]
     if c["rows"]:
+        solar = list(c.get("solar") or []) + [False] * len(c["rows"])
+        tbs = list(c.get("tbs") or []) + [""] * len(c["rows"])
+        tem_solar = any(solar[:len(c["rows"])])
+        ativ = str(c.get("atividade") or "Moderada").lower()
+        lim_txt = {"leve": "30,0", "moderada": "26,7", "pesada": "25,0"}.get(ativ, "26,7")
+        if tem_solar:
+            frm = ("O IBUTG foi calculado conforme o ambiente de cada local: sem carga solar, IBUTG = 0,7 × tbn + 0,3 × tg; "
+                   "com incidência de calor (carga solar), IBUTG = 0,7 × tbn + 0,1 × tbs + 0,2 × tg.")
+        else:
+            frm = "O IBUTG foi calculado para ambiente sem carga solar: IBUTG = 0,7 × tbn + 0,3 × tg."
         S += [P("As leituras foram realizadas em " + c.get("data_leitura", DATA) + ", no local de execução das atividades, em regime de trabalho contínuo e atividade "
-                "classificada como moderada (taxa metabólica do Quadro 3 da NR-15). O IBUTG foi calculado para ambiente sem carga solar: "
-                "IBUTG = 0,7 × tbn + 0,3 × tg."),
-              grid(["Local", "tbn (°C)", "tg (°C)", "IBUTG (°C)", "Limite (°C)", "Resultado"], c["rows"],
-                   [5.0 * cm, 1.8 * cm, 1.8 * cm, 2.2 * cm, 2.0 * cm, W - 12.8 * cm],
-                   shade=[(5, i + 1, OKC) for i in range(len(c["rows"]))]), Spacer(1, 3),
-              P(f"<b>Nota:</b> adotou-se, de forma conservadora, o limite de 26,7 °C (Quadro 1 do Anexo 3 da NR-15 \u2013 atividade moderada, "
-                f"regime contínuo). O maior IBUTG medido ({c['max']} °C) ficou abaixo do limite.", small)]
+                f"classificada como {ativ} (taxa metabólica do Quadro 3 da NR-15). " + frm)]
+        corpo = c["rows"]
+        if tem_solar:
+            corpo = [[r[0], r[1], r[2], (tbs[i] if solar[i] and tbs[i] else "\u2014"), r[3], r[4], r[5]] for i, r in enumerate(c["rows"])]
+            cab = ["Local", "tbn (°C)", "tg (°C)", "tbs (°C)", "IBUTG (°C)", "Limite (°C)", "Resultado"]
+            larg = [4.2 * cm, 1.6 * cm, 1.6 * cm, 1.6 * cm, 2.0 * cm, 1.9 * cm, W - 12.9 * cm]
+            col_res = 6
+        else:
+            cab = ["Local", "tbn (°C)", "tg (°C)", "IBUTG (°C)", "Limite (°C)", "Resultado"]
+            larg = [5.0 * cm, 1.8 * cm, 1.8 * cm, 2.2 * cm, 2.0 * cm, W - 12.8 * cm]
+            col_res = 5
+        acima = any("acima" in str(r[5]).lower() for r in c["rows"])
+        S += [grid(cab, corpo, larg,
+                   shade=[(col_res, i + 1, WARN if "acima" in str(r[5]).lower() else OKC) for i, r in enumerate(c["rows"])]), Spacer(1, 3),
+              P(f"<b>Nota:</b> adotou-se o limite de {lim_txt} °C (Quadro 1 do Anexo 3 da NR-15 \u2013 atividade {ativ}, regime contínuo). " +
+                (f"O maior IBUTG medido ({c['max']} °C) ficou acima do limite em pelo menos uma leitura." if acima
+                 else f"O maior IBUTG medido ({c['max']} °C) ficou abaixo do limite."), small)]
     S += [P("<b>Observação:</b> " + c["concl"]), P("7.3 \u2013 Vibração", h2)]
     S += [P(t) for t in f["vibracao"]]
     if f["vib_tab"]:

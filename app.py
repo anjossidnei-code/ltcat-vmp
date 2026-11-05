@@ -207,6 +207,24 @@ def novo_laudo(empresa_id):
     }
 
 
+# Limites de IBUTG (°C) para regime de trabalho contínuo — NR-15, Anexo 3, Quadro 1
+CALOR_LIMITES = {"Leve": 30.0, "Moderada": 26.7, "Pesada": 25.0}
+
+
+def calc_ibutg(tbn, tg, tbs=None, solar=False):
+    """IBUTG (°C). Sem incidência de calor: 0,7·tbn + 0,3·tg. Com incidência (carga solar): 0,7·tbn + 0,1·tbs + 0,2·tg.
+    Devolve None se faltar algum dado necessário."""
+    a, b = num(tbn), num(tg)
+    if a is None or b is None:
+        return None
+    if solar:
+        s = num(tbs)
+        if s is None:
+            return None
+        return 0.7 * a + 0.1 * s + 0.2 * b
+    return 0.7 * a + 0.3 * b
+
+
 def calcula_ruido(D, T):
     """Dose D(%) em T(min) -> dose projetada 480 min e NE (fórmula da NR-15, q=5)."""
     proj = D * 480 / T
@@ -395,15 +413,69 @@ elif pagina == "Editar laudo":
         c = f["calor"]
         usa_tab = st.checkbox("Informar leituras de IBUTG (tabela)", value=bool(c.get("rows")))
         if usa_tab:
-            c["data_leitura"] = st.text_input("Data das leituras", c.get("data_leitura", ""))
-            base = pd.DataFrame(c.get("rows") or [["", "", "", "", "26,7", "Abaixo do limite"]],
-                                columns=["Local", "tbn (°C)", "tg (°C)", "IBUTG (°C)", "Limite (°C)", "Resultado"])
-            ed = st.data_editor(base, num_rows="dynamic", width='stretch', key="calor_ed")
-            c["rows"] = ed.fillna("").astype(str).values.tolist()
-            vals = [num(x[3]) for x in c["rows"] if num(x[3]) is not None]
-            c["max"] = fmt(max(vals), 2) if vals else ""
+            cc1, cc2 = st.columns(2)
+            c["data_leitura"] = cc1.text_input("Data das leituras", c.get("data_leitura", ""))
+            ativ_atual = c.get("atividade") if c.get("atividade") in CALOR_LIMITES else "Moderada"
+            ativ_nome = cc2.selectbox("Tipo de atividade (define o limite · NR-15, Anexo 3, regime contínuo)", list(CALOR_LIMITES),
+                                      index=list(CALOR_LIMITES).index(ativ_atual),
+                                      format_func=lambda k: f"{k} — limite de {fmt(CALOR_LIMITES[k], 1)} °C")
+            c["atividade"] = ativ_nome
+            limite = CALOR_LIMITES[ativ_nome]
+            st.caption("Informe **tbn** e **tg** (e **tbs** quando houver incidência de calor/carga solar): o **IBUTG é calculado automaticamente**. "
+                       "Sem incidência: IBUTG = 0,7·tbn + 0,3·tg. Com incidência: IBUTG = 0,7·tbn + 0,1·tbs + 0,2·tg.")
+            # monta a tabela de entrada a partir do que ja esta salvo no laudo
+            rows0, solar0, tbs0 = c.get("rows") or [], c.get("solar") or [], c.get("tbs") or []
+            base_rows = []
+            for i, r0 in enumerate(rows0):
+                r0 = list(r0) + [""] * (6 - len(r0))
+                tem_calc = num(r0[1]) is not None and num(r0[2]) is not None
+                base_rows.append([r0[0], bool(solar0[i]) if i < len(solar0) else False, r0[1], r0[2],
+                                  (tbs0[i] if i < len(tbs0) else ""), "" if tem_calc else r0[3]])
+            if not base_rows:
+                base_rows = [["", False, "", "", "", ""]]
+            base = pd.DataFrame(base_rows, columns=["Local", "Com incidência de calor", "tbn (°C)", "tg (°C)", "tbs (°C)", "IBUTG informado (°C)"])
+            base["Com incidência de calor"] = base["Com incidência de calor"].astype(bool)
+            ed = st.data_editor(base, num_rows="dynamic", width='stretch', key="calor_ed", column_config={
+                "Com incidência de calor": st.column_config.CheckboxColumn(
+                    "Com incidência de calor", help="Marque se há carga solar/incidência de calor: usa o tbs na fórmula.", default=False),
+                "IBUTG informado (°C)": st.column_config.TextColumn(
+                    "IBUTG informado (°C)", help="Só preencha se não tiver tbn/tg. Havendo tbn e tg, o sistema calcula."),
+            })
+            linhas, solar_l, tbs_l, vista, avisos = [], [], [], [], []
+            for n_l, (_, r_) in enumerate(ed.fillna("").iterrows(), start=1):
+                local = str(r_["Local"]).strip()
+                sol = bool(r_["Com incidência de calor"])
+                tbn_s, tg_s, tbs_s, ib_s = (str(r_[k]).strip() for k in ["tbn (°C)", "tg (°C)", "tbs (°C)", "IBUTG informado (°C)"])
+                if not (local or tbn_s or tg_s or tbs_s or ib_s):
+                    continue
+                calc = calc_ibutg(tbn_s, tg_s, tbs_s, sol)
+                ib = calc if calc is not None else num(ib_s)
+                if calc is None and sol and num(tbn_s) is not None and num(tg_s) is not None:
+                    avisos.append(f"Linha {n_l}: informe o **tbs** (há incidência de calor).")
+                situ = "" if ib is None else ("Abaixo do limite" if ib <= limite else "Acima do limite")
+                linhas.append([local, tbn_s, tg_s, fmt(ib, 2) if ib is not None else "", fmt(limite, 1), situ])
+                solar_l.append(sol)
+                tbs_l.append(tbs_s if sol else "")
+                vista.append({"Local": local, "Fórmula": "com incidência (tbn, tbs, tg)" if sol else "sem incidência (tbn, tg)",
+                              "IBUTG (°C)": fmt(ib, 2) if ib is not None else "—", "Limite (°C)": fmt(limite, 1), "Situação": situ or "—"})
+            for a_ in avisos:
+                st.warning(a_)
+            if vista:
+                st.markdown("##### Resultado calculado")
+                st.dataframe(pd.DataFrame(vista), width='stretch', hide_index=True)
+                vals = [num(x[3]) for x in linhas if num(x[3]) is not None]
+                c["max"] = fmt(max(vals), 2) if vals else ""
+                if any(x[5] == "Acima do limite" for x in linhas):
+                    st.error("Há leitura de IBUTG **acima do limite**. Revise a observação abaixo, a síntese e a conclusão do laudo: "
+                             "o texto padrão afirma que não há caracterização de insalubridade por calor.")
+                elif vals:
+                    st.success(f"Maior IBUTG: {c['max']} °C — abaixo do limite de {fmt(limite, 1)} °C.")
+                c["rows"], c["solar"], c["tbs"] = linhas, solar_l, tbs_l
+            else:
+                st.info("Preencha pelo menos uma leitura (local, tbn e tg) para gerar a tabela do calor no laudo.")
+                c["rows"], c["solar"], c["tbs"], c["max"] = None, [], [], ""
         else:
-            c["rows"] = None
+            c["rows"], c["solar"], c["tbs"] = None, [], []
         c["concl"] = st.text_area("Observação / conclusão do calor", c["concl"], height=110)
         f["calor"] = c
 
