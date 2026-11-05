@@ -33,7 +33,11 @@ ESTILO = """
 <style>
 :root{--azul:#042C59;--azul2:#0170A3;--ciano:#01A0D6;--linha:#B9C7DB;--fundo:#DDE5F0;--texto:#1B2A41;--suave:#5D6B82}
 /* esconde Fork / GitHub / menu / rodapé do Streamlit */
-#MainMenu,footer,[data-testid="stToolbar"],[data-testid="stDecoration"],[data-testid="stStatusWidget"]{display:none !important;visibility:hidden !important}
+#MainMenu,footer,[data-testid="stDecoration"],[data-testid="stStatusWidget"],[data-testid="stToolbarActions"],[data-testid="stMainMenu"],[data-testid="stAppDeployButton"],.stAppDeployButton{display:none !important;visibility:hidden !important}
+/* botao de REABRIR o menu lateral: sempre visivel e em destaque (antes ficava escondido junto com a barra do topo) */
+[data-testid="stExpandSidebarButton"],[data-testid="stSidebarCollapsedControl"],[data-testid="collapsedControl"]{display:flex !important;visibility:visible !important;opacity:1 !important;z-index:1000000}
+[data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"] button,[data-testid="stSidebarCollapsedControl"] button,[data-testid="collapsedControl"] button{background:var(--azul) !important;border-radius:8px !important}
+[data-testid="stExpandSidebarButton"] *,[data-testid="stSidebarCollapsedControl"] *,[data-testid="collapsedControl"] *{color:#fff !important;fill:#fff !important}
 [data-testid="stHeader"]{background:transparent;height:2.2rem}
 .block-container{padding-top:1.6rem;padding-bottom:3rem;max-width:1280px}
 .stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background:var(--fundo) !important}
