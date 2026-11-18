@@ -426,12 +426,17 @@ elif pagina == "Editar laudo":
                        ". Confirme se foram remedidos ou cite a origem no texto antes de emitir.")
 
     # visualização: editor e prévia do PDF lado a lado (a prévia se atualiza quando você edita)
-    modo_vis = st.radio("Visualização", ["Editor + prévia", "Prévia ampla", "Só editor"], horizontal=True, key="modo_vis", label_visibility="collapsed")
+    v1, v2 = st.columns([3, 1])
+    modo_vis = v1.radio("Visualização", ["Editor + prévia", "Prévia ampla", "Só editor"], horizontal=True, key="modo_vis", label_visibility="collapsed")
+    altura = v2.selectbox("Altura da área", [560, 640, 720, 800, 900], index=2, key="altura_vis", label_visibility="collapsed",
+                          format_func=lambda h: f"Altura da área: {h} px", help="Altura do editor e da prévia. Cada um tem a sua barra de rolagem, então a prévia não sai da tela quando você edita um texto longo.")
     if modo_vis == "Só editor":
         col_ed, col_prev = st.container(), None
+        area_ed = col_ed
     else:
         col_ed, col_prev = st.columns([1, 1] if modo_vis == "Editor + prévia" else [1, 1.8], gap="medium")
-    tabs = col_ed.tabs(["Identificação", "Ambiente e atividades", "Ruído", "Calor", "Vibração", "Agentes químicos", "Medidas e síntese", "Textos do laudo"])
+        area_ed = col_ed.container(height=altura, border=True)   # o editor rola dentro desta caixa; a prévia fica parada ao lado
+    tabs = area_ed.tabs(["Identificação", "Ambiente e atividades", "Ruído", "Calor", "Vibração", "Agentes químicos", "Medidas e síntese", "Textos do laudo"])
 
     # ---- Identificação
     with tabs[0]:
@@ -760,7 +765,7 @@ elif pagina == "Editar laudo":
                     nome_pdf = f"LTCAT_{slug(f['nome']) or 'laudo'}_{E[f['empresa_id']]['id'].upper()}.pdf"
                     st.download_button("⬇️ Baixar PDF", pdf_prev, file_name=nome_pdf, mime="application/pdf", type="primary", width='stretch', key="dl_prev")
                     st.caption(f"{len(imgs_prev)} página(s) · é assim que o laudo será impresso. Edite à esquerda e a prévia acompanha.")
-                    with st.container(height=760, border=True):
+                    with st.container(height=max(320, altura - 150), border=True):
                         for n_pg, img_pg in enumerate(imgs_prev, start=1):
                             st.image(img_pg, caption=f"Página {n_pg} de {len(imgs_prev)}", width='stretch')
 
