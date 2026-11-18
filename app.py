@@ -187,6 +187,27 @@ def slug(s):
     return s.strip("_")
 
 
+@st.cache_data(show_spinner=False, max_entries=12)
+def _previa_pdf(emp, sig, f, dpi=110):
+    """Gera o PDF do laudo e a imagem de cada página (prévia na tela). Guarda em cache: só refaz se algum dado mudar."""
+    import pymupdf
+    emp, f = copy.deepcopy(emp), copy.deepcopy(f)
+    store.logo_para_arquivo(emp)
+    fd, saida = tempfile.mkstemp(suffix=".pdf", dir=D_OUT)
+    os.close(fd)
+    try:
+        engine.build(emp, sig, f, f["data_laudo"], saida)
+        with open(saida, "rb") as fh:
+            pdf = fh.read()
+    finally:
+        try:
+            os.remove(saida)
+        except OSError:
+            pass
+    doc = pymupdf.open(stream=pdf, filetype="pdf")
+    return pdf, [p.get_pixmap(dpi=dpi).tobytes("png") for p in doc]
+
+
 def novo_laudo(empresa_id):
     return {
         "id": "", "key": "", "nome": "", "setor": "", "ident_setor": "", "empresa_id": empresa_id,
@@ -404,7 +425,13 @@ elif pagina == "Editar laudo":
             st.warning("Há dados importados de documentos de data diferente da data do laudo: " + "; ".join(antigos) +
                        ". Confirme se foram remedidos ou cite a origem no texto antes de emitir.")
 
-    tabs = st.tabs(["Identificação", "Ambiente e atividades", "Ruído", "Calor", "Vibração", "Agentes químicos", "Medidas e síntese", "Textos do laudo"])
+    # visualização: editor e prévia do PDF lado a lado (a prévia se atualiza quando você edita)
+    modo_vis = st.radio("Visualização", ["Editor + prévia", "Prévia ampla", "Só editor"], horizontal=True, key="modo_vis", label_visibility="collapsed")
+    if modo_vis == "Só editor":
+        col_ed, col_prev = st.container(), None
+    else:
+        col_ed, col_prev = st.columns([1, 1] if modo_vis == "Editor + prévia" else [1, 1.8], gap="medium")
+    tabs = col_ed.tabs(["Identificação", "Ambiente e atividades", "Ruído", "Calor", "Vibração", "Agentes químicos", "Medidas e síntese", "Textos do laudo"])
 
     # ---- Identificação
     with tabs[0]:
@@ -626,12 +653,14 @@ elif pagina == "Editar laudo":
     with tabs[6]:
         f["epc"] = st.text_area("Item 10 – EPC e medidas de controle", f["epc"], height=110)
         f["epi"] = st.text_area("Item 11 – EPI", f["epi"], height=110)
-        st.markdown("**Síntese (item 12)** — o ruído é preenchido automaticamente; use `<br/>` para quebrar linha.")
+        st.markdown("**Síntese (item 12)** — o ruído é preenchido automaticamente. Use **Enter** para quebrar a linha.")
         s = list(f.get("sint") or ["", "", "", ""])
-        c1, c2, c3 = st.columns(3)
-        s[1] = c1.text_input("Calor", s[1])
-        s[2] = c2.text_input("Agentes químicos", s[2])
-        s[3] = c3.text_input("Vibração", s[3])
+        kid_s = f.get("id") or "novo"
+        _com_enter = lambda t: re.sub(r"<br\s*/?>", "\n", t or "")      # <br/> do modelo vira quebra de linha na caixa
+        _com_br = lambda t: "<br/>".join(x.strip() for x in (t or "").strip().split("\n"))   # e volta pra <br/> ao salvar
+        s[1] = _com_br(st.text_area("Calor", _com_enter(s[1]), height=80, key=f"sint_calor_{kid_s}"))
+        s[2] = _com_br(st.text_area("Agentes químicos", _com_enter(s[2]), height=80, key=f"sint_quim_{kid_s}"))
+        s[3] = _com_br(st.text_area("Vibração", _com_enter(s[3]), height=80, key=f"sint_vib_{kid_s}"))
         if f["ruido"].get("nen"):
             s[0] = f"{f['ruido']['nen']} dB(A)<br/>(LT 85)"
         f["sint"] = s
@@ -708,10 +737,37 @@ elif pagina == "Editar laudo":
         if txs:
             st.info(f"{len(txs)} texto(s) editado(s) neste laudo.")
 
+    # ---- Prévia do PDF (lado a lado com o editor)
+    if col_prev is not None:
+        with col_prev:
+            st.markdown("##### 👁️ Prévia do laudo")
+            p1, p2 = st.columns([1.3, 1])
+            auto_prev = p1.toggle("Atualizar ao editar", value=True, key="previa_auto", help="Desligue para editar sem esperar; use 🔄 para atualizar quando quiser.")
+            atualizar = p2.button("🔄 Atualizar prévia", width='stretch')
+            chave_prev = f"previa_{f.get('id') or 'novo'}"
+            if not f["ruido"].get("nen"):
+                st.info("Informe o ruído (aba Ruído) para ver a prévia do laudo.")
+            else:
+                if auto_prev or atualizar or chave_prev not in st.session_state:
+                    try:
+                        with st.spinner("Atualizando a prévia…"):
+                            st.session_state[chave_prev] = _previa_pdf(E[f["empresa_id"]], store.obter_signatario(), f, 120)
+                    except Exception as ex_prev:
+                        st.error(f"Não foi possível gerar a prévia ainda: {ex_prev}")
+                dados_prev = st.session_state.get(chave_prev)
+                if dados_prev:
+                    pdf_prev, imgs_prev = dados_prev
+                    nome_pdf = f"LTCAT_{slug(f['nome']) or 'laudo'}_{E[f['empresa_id']]['id'].upper()}.pdf"
+                    st.download_button("⬇️ Baixar PDF", pdf_prev, file_name=nome_pdf, mime="application/pdf", type="primary", width='stretch', key="dl_prev")
+                    st.caption(f"{len(imgs_prev)} página(s) · é assim que o laudo será impresso. Edite à esquerda e a prévia acompanha.")
+                    with st.container(height=760, border=True):
+                        for n_pg, img_pg in enumerate(imgs_prev, start=1):
+                            st.image(img_pg, caption=f"Página {n_pg} de {len(imgs_prev)}", width='stretch')
+
     st.divider()
     cs, cg = st.columns(2)
     salvar = cs.button("💾 Salvar", type="primary", width='stretch')
-    gerar = cg.button("📄 Salvar e gerar PDF", width='stretch') or st.session_state.pop("auto_gerar", False)
+    gerar = cg.button("📄 Salvar e baixar PDF", width='stretch') or st.session_state.pop("auto_gerar", False)
 
     def salvar_laudo():
         if not f["nome"].strip():
@@ -734,21 +790,10 @@ elif pagina == "Editar laudo":
         elif salvar_laudo():
             st.success("Laudo salvo.")
             if gerar:
-                emp = copy.deepcopy(E[f["empresa_id"]])
-                store.logo_para_arquivo(emp)
-                sig = store.obter_signatario()
-                saida = os.path.join(D_OUT, f"LTCAT_{f['key']}_{emp['id'].upper()}.pdf")
                 try:
-                    engine.build(emp, sig, f, f["data_laudo"], saida)
-                    st.success(f"PDF gerado: {saida}")
-                    with open(saida, "rb") as fh:
-                        st.download_button("⬇️ Baixar PDF", fh.read(), file_name=os.path.basename(saida), mime="application/pdf")
-                    import pymupdf
-                    doc = pymupdf.open(saida)
-                    st.caption(f"{len(doc)} páginas")
-                    cols = st.columns(min(len(doc), 4))
-                    for i, p in enumerate(doc):
-                        cols[i % len(cols)].image(p.get_pixmap(dpi=70).tobytes("png"), caption=f"Página {i + 1}")
+                    pdf_final, _ = _previa_pdf(E[f["empresa_id"]], store.obter_signatario(), f, 120)
+                    st.download_button("⬇️ Baixar PDF", pdf_final, file_name=f"LTCAT_{f['key']}_{E[f['empresa_id']]['id'].upper()}.pdf",
+                                       mime="application/pdf", type="primary", key="dl_final")
                 except Exception as ex:
                     st.error(f"Erro ao gerar o PDF: {ex}")
 
