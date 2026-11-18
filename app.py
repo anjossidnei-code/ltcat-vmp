@@ -39,7 +39,7 @@ ESTILO = """
 [data-testid="stExpandSidebarButton"],[data-testid="stExpandSidebarButton"] button,[data-testid="stSidebarCollapsedControl"] button,[data-testid="collapsedControl"] button{background:var(--azul) !important;border-radius:8px !important}
 [data-testid="stExpandSidebarButton"] *,[data-testid="stSidebarCollapsedControl"] *,[data-testid="collapsedControl"] *{color:#fff !important;fill:#fff !important}
 [data-testid="stHeader"]{background:transparent;height:2.2rem}
-.block-container{padding-top:1.6rem;padding-bottom:3rem;max-width:1280px}
+.block-container{padding:1rem 1.2rem 2rem 1.2rem !important;max-width:none !important}
 .stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"]{background:var(--fundo) !important}
 /* títulos */
 h1{color:var(--azul);font-weight:800;letter-spacing:-.3px;font-size:1.75rem !important;padding:0 0 .55rem !important;margin-bottom:1.1rem;border-bottom:3px solid var(--azul)}
@@ -62,9 +62,9 @@ h5{color:var(--azul);font-weight:700;margin:0 0 .4rem;font-size:.95rem !importan
 [data-testid="stSidebar"] .stButton>button:hover{background:rgba(255,255,255,.1);border-color:#fff}
 [data-testid="stSidebar"] .stButton>button *{color:#E6EEF9 !important}
 /* itens do menu (botoes com chave nav_*) */
-[data-testid="stSidebar"] [class*="st-key-nav_"] button{border:0 !important;padding:.55rem .8rem;border-radius:8px;justify-content:flex-start}
+[data-testid="stSidebar"] [class*="st-key-nav_"] button{border:0 !important;padding:.4rem .6rem;border-radius:8px;justify-content:flex-start;min-height:0}
 [data-testid="stSidebar"] [class*="st-key-nav_"] button>div,[data-testid="stSidebar"] [class*="st-key-nav_"] button p{width:100%;text-align:left;justify-content:flex-start}
-[data-testid="stSidebar"] [class*="st-key-nav_"] button *{font-weight:600;color:#C9D8EC !important}
+[data-testid="stSidebar"] [class*="st-key-nav_"] button *{font-weight:600;font-size:.86rem;color:#C9D8EC !important}
 [data-testid="stSidebar"] [class*="st-key-nav_"] button[kind="primary"]{background:var(--azul2) !important;box-shadow:inset 3px 0 0 var(--ciano)}
 [data-testid="stSidebar"] [class*="st-key-nav_"] button[kind="primary"] *{color:#fff !important;font-weight:700}
 [data-testid="stSidebar"] [class*="st-key-nav_"] button[kind="secondary"]:hover{background:rgba(255,255,255,.09)}
@@ -94,6 +94,17 @@ button[role="tab"][aria-selected="true"]{color:var(--azul);font-weight:700}
 .login-caixa .ic{width:64px;height:64px;border-radius:18px;margin:0 auto 1rem;background:linear-gradient(135deg,var(--ciano),var(--azul2));display:flex;align-items:center;justify-content:center}
 .login-caixa h2{margin:0 0 .2rem}
 .login-caixa p{color:var(--suave);margin:0 0 1rem}
+/* layout compacto: menu mais estreito, menos margem, mais área útil para o editor e a prévia */
+[data-testid="stSidebar"][aria-expanded="true"]{min-width:208px !important;max-width:208px !important;width:208px !important}
+[data-testid="stSidebarUserContent"]{padding:.4rem .7rem 1rem !important}
+[data-testid="stSidebarHeader"]{height:2.4rem !important;padding:.4rem .6rem !important}
+.marca{padding:.1rem .2rem .8rem;margin-bottom:.6rem;gap:.55rem}
+.marca .ic{width:34px;height:34px;border-radius:9px}
+.marca .nm{font-size:.92rem}
+[data-testid="stVerticalBlockBorderWrapper"]{padding:.55rem !important}
+[data-testid="stVerticalBlock"]{gap:.7rem}
+textarea,input{font-size:.9rem !important}
+[data-testid="stWidgetLabel"] p{font-size:.78rem}
 </style>
 """
 st.markdown(ESTILO, unsafe_allow_html=True)
@@ -434,7 +445,7 @@ elif pagina == "Editar laudo":
         col_ed, col_prev = st.container(), None
         area_ed = col_ed
     else:
-        col_ed, col_prev = st.columns([1, 1] if modo_vis == "Editor + prévia" else [1, 1.8], gap="medium")
+        col_ed, col_prev = st.columns([1.15, 1] if modo_vis == "Editor + prévia" else [1, 1.8], gap="small")
         area_ed = col_ed.container(height=altura, border=True)   # o editor rola dentro desta caixa; a prévia fica parada ao lado
     tabs = area_ed.tabs(["Identificação", "Ambiente e atividades", "Ruído", "Calor", "Vibração", "Agentes químicos", "Medidas e síntese", "Textos do laudo"])
 
