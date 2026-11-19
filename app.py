@@ -219,6 +219,19 @@ def _previa_pdf(emp, sig, f, dpi=110):
     return pdf, [p.get_pixmap(dpi=dpi).tobytes("png") for p in doc]
 
 
+def calor_concl_padrao(nome):
+    """Observação padrão do calor (item 7.2) quando NÃO há leituras de IBUTG."""
+    fn = (nome or "").strip()
+    fn = (" de " + fn[:1].upper() + fn[1:].lower()) if fn else ""
+    return (f"no ambiente e na atividade da função{fn} não há fontes geradoras de calor que tenham necessidade de avaliação quantitativa "
+            "(IBUTG). Assim, não há caracterização de insalubridade por calor (NR-15, Anexo 3), tampouco exposição apta ao enquadramento "
+            "previdenciário.")
+
+
+CALOR_MET_PADRAO = ("<b>Calor:</b> avaliação qualitativa conforme Anexo 3 da NR-15 e NHO-06 da Fundacentro, considerando as fontes geradoras de calor, "
+                    "o tipo de atividade e o regime de trabalho no posto, para verificação da necessidade de avaliação quantitativa (IBUTG).")
+
+
 def novo_laudo(empresa_id):
     return {
         "id": "", "key": "", "nome": "", "setor": "", "ident_setor": "", "empresa_id": empresa_id,
@@ -508,6 +521,12 @@ elif pagina == "Editar laudo":
     with tabs[3]:
         c = f["calor"]
         kid = f.get("id") or "novo"   # separa o estado dos campos de cada laudo
+        # laudos antigos: separa o texto "sem leituras" (automático) do texto "com leituras" (digitado)
+        _txt_padrao = "não há fontes geradoras de calor" in (c.get("concl") or "")
+        if "concl_sem" not in c:
+            c["concl_sem"] = "" if c.get("rows") else (c.get("concl") or "")
+        if "concl_med" not in c:
+            c["concl_med"] = (c.get("concl") or "") if (c.get("rows") and not _txt_padrao) else ""
         usa_tab = st.checkbox("Informar leituras de IBUTG (tabela)", value=bool(c.get("rows")), key=f"calor_usa_{kid}")
         if usa_tab:
             cc1, cc2 = st.columns(2)
@@ -595,7 +614,52 @@ elif pagina == "Editar laudo":
                 c["rows"], c["solar"], c["tbs"], c["max"] = None, [], [], ""
         else:
             c["rows"], c["solar"], c["tbs"] = None, [], []
-        c["concl"] = st.text_area("Observação / conclusão do calor", c["concl"], height=110)
+        # Textos do calor (observação do item 7.2 e metodologia do item 4):
+        #  - SEM leituras de IBUTG: já vêm prontos (texto automático, editável);
+        #  - COM leituras: ficam em branco para o usuário digitar (ou gerar a partir das leituras).
+        pad_concl, pad_met = calor_concl_padrao(f.get("nome")), CALOR_MET_PADRAO
+        k_cs, k_ms = f"calor_concl_sem_{kid}", f"calor_met_sem_{kid}"
+        k_cm, k_mm = f"calor_concl_med_{kid}", f"calor_met_med_{kid}"
+        if usa_tab:
+            st.markdown("##### Textos do calor (digite, ou gere a partir das leituras)")
+            if c.get("rows"):
+                vals_ = [num(x[3]) for x in c["rows"] if num(x[3]) is not None]
+                acima_ = any(x[5] == "Acima do limite" for x in c["rows"])
+                dl_ = c.get("data_leitura") or ""
+                lim_ = c.get("limite") or "26,7"
+                if acima_:
+                    auto_concl = (f"as leituras de IBUTG realizadas{(' em ' + dl_) if dl_ else ''} apontam valor acima do limite de {lim_} °C "
+                                  f"(NR-15, Anexo 3), sendo o maior IBUTG de {c.get('max') or (fmt(max(vals_), 2) if vals_ else '—')} °C. Há indício de caracterização de "
+                                  "insalubridade por calor; avalie o enquadramento e as medidas de controle.")
+                else:
+                    auto_concl = (f"as leituras de IBUTG realizadas{(' em ' + dl_) if dl_ else ''} ficaram abaixo do limite de {lim_} °C, "
+                                  f"com maior valor de {c.get('max') or ''} °C. Assim, não há caracterização de insalubridade por calor "
+                                  "(NR-15, Anexo 3), tampouco exposição apta ao enquadramento previdenciário.")
+                auto_met = ("<b>Calor:</b> avaliação quantitativa do IBUTG conforme Anexo 3 da NR-15 e NHO-06 da Fundacentro, com leituras de tbn e tg "
+                            "(e tbs quando há incidência de calor) no posto de trabalho, em regime de trabalho contínuo, comparadas ao limite do "
+                            "Quadro 1 conforme a taxa metabólica da atividade.")
+
+                def _gerar_calor(a, b, t1, t2):
+                    st.session_state[a] = t1
+                    st.session_state[b] = t2
+                st.button("✨ Gerar os textos a partir das leituras", key=f"calor_gerar_{kid}", on_click=_gerar_calor,
+                          args=(k_cm, k_mm, auto_concl, auto_met))
+            c["concl_med"] = st.text_area("Observação / conclusão do calor (item 7.2)", c.get("concl_med") or "", height=110, key=k_cm,
+                                          placeholder="Digite a observação / conclusão sobre as leituras de IBUTG.")
+            c["met_med"] = st.text_area("Metodologia do calor (item 4)", c.get("met_med") or "", height=90, key=k_mm,
+                                        placeholder="Digite como o calor foi avaliado (ex.: IBUTG conforme NR-15 Anexo 3 e NHO-06, equipamento utilizado...).")
+            c["concl"], c["met"] = c["concl_med"], c["met_med"]
+        else:
+            st.markdown("##### Textos do calor (automáticos — pode editar)")
+            c["concl_sem"] = st.text_area("Observação / conclusão do calor (item 7.2)", c.get("concl_sem") or pad_concl, height=110, key=k_cs)
+            c["met_sem"] = st.text_area("Metodologia do calor (item 4)", c.get("met_sem") or pad_met, height=90, key=k_ms)
+
+            def _restaurar_calor(a, b, t1, t2):
+                st.session_state[a] = t1
+                st.session_state[b] = t2
+            st.button("↩️ Restaurar texto automático", key=f"calor_rest_{kid}", on_click=_restaurar_calor, args=(k_cs, k_ms, pad_concl, pad_met))
+            c["concl"], c["met"] = c["concl_sem"], c["met_sem"]
+        c["medido"] = bool(usa_tab)
         f["calor"] = c
 
     # ---- Vibração

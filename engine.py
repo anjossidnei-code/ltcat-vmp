@@ -217,8 +217,18 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
             "NR-15, Anexo 1 \u2013 limite de 85 dB(A) para jornada de 8 horas, nível de ação de 80 dB(A) (NR-09) e incremento de duplicação de "
             "dose (q) igual a 5 dB. Resultados expressos em Nível de Exposição Normalizado (NEN/TWA) para 8 horas "
             "e em dose diária (%)."))]
-    S += [P(tx("met_calor", "<b>Calor:</b> avaliação qualitativa conforme Anexo 3 da NR-15 e NHO-06 da Fundacentro, considerando as fontes geradoras de calor, "
-            "o tipo de atividade e o regime de trabalho no posto, para verificação da necessidade de avaliação quantitativa (IBUTG)."))]
+    _c_met = f.get("calor") or {}
+    if _c_met.get("rows") or _c_met.get("medido"):   # com leituras de IBUTG: o texto é digitado pelo usuário (em branco = não imprime)
+        _met_calor = (_c_met.get("met") or "").strip()
+        if _met_calor and not _met_calor.lower().startswith(("<b>calor", "calor")):
+            _met_calor = "<b>Calor:</b> " + _met_calor
+    else:                    # sem leituras: texto automático (avaliação qualitativa), ou o que o usuário editou
+        _met_calor = (_c_met.get("met") or "").strip() or (
+            "<b>Calor:</b> avaliação qualitativa conforme Anexo 3 da NR-15 e NHO-06 da Fundacentro, considerando as fontes geradoras de calor, "
+            "o tipo de atividade e o regime de trabalho no posto, para verificação da necessidade de avaliação quantitativa (IBUTG).")
+    _t_met = tx("met_calor", _met_calor)
+    if _t_met:
+        S += [P(_t_met)]
     if f.get("vci_ref"):
         S += [P(tx("met_vci", "<b>Vibração de corpo inteiro (VCI):</b> avaliação conforme NR-09, Anexo 1 e NHO-09 da Fundacentro, pela Aceleração Resultante de "
                 "Exposição Normalizada (aren) e pelo Valor da Dose de Vibração Resultante (VDVR), com base em resultado de referência da mesma "
@@ -308,7 +318,9 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
               P(f"<b>Nota:</b> adotou-se o limite de {lim_txt} °C {nota_lim}. " +
                 (f"O maior IBUTG medido ({c['max']} °C) ficou acima do limite em pelo menos uma leitura." if acima
                  else f"O maior IBUTG medido ({c['max']} °C) ficou abaixo do limite."), small)]
-    S += [P("<b>Observação:</b> " + c["concl"]), P("7.3 \u2013 Vibração", h2)]
+    if (c.get("concl") or "").strip():
+        S += [P("<b>Observação:</b> " + c["concl"])]
+    S += [P("7.3 \u2013 Vibração", h2)]
     S += [P(t) for t in f["vibracao"]]
     if f["vib_tab"]:
         S += [grid(["Parâmetro", "Nível de Ação", "Limite de Exposição", "Referência"], f["vib_tab"],
