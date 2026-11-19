@@ -169,8 +169,26 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
             coletar[k] = d
         return _textos.get(k) or d
 
+    # ---- resultados acima do limite de tolerância: os textos automáticos de conclusão mudam
+    def _nf(s):
+        try:
+            return float(str(s).replace(",", ".").strip())
+        except (TypeError, ValueError):
+            return None
+    _nen_v = _nf((f.get("ruido") or {}).get("nen"))
+    ruido_acima_lt = _nen_v is not None and _nen_v > 85.0
+    calor_acima_lt = any("acima" in str((r_ + ["", "", "", "", "", ""])[5]).lower() for r_ in ((f.get("calor") or {}).get("rows") or []))
+    _acima = []
+    if ruido_acima_lt:
+        _acima.append(f"ruído (NEN de {(f.get('ruido') or {}).get('nen')} dB(A), contra o limite de 85 dB(A))")
+    if calor_acima_lt:
+        _acima.append(f"calor (IBUTG de {(f.get('calor') or {}).get('max') or '—'} °C, acima do limite)")
+    _acima_txt = " e ".join(_acima)
+
     key = f.get("key", n)
-    HDR[0] = f"LTCAT \u2013 {n} | {emp['nome_curto']}"
+    _un = (f.get("unidade") or "").strip()
+    _un_no_nome = _un and _un.upper() in n.upper()
+    HDR[0] = f"LTCAT \u2013 {n}" + (f" \u2013 UNIDADE: {_un.upper()}" if _un and not _un_no_nome else "") + f" | {emp['nome_curto']}"
     FOOT[0] = emp['rodape']
     S = []
     S += []
@@ -196,6 +214,7 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
               ("CNPJ", emp["cnpj"]),
               ("Atividade / CNAE", emp["cnae"]),
               ("Grau de Risco", emp["grau_risco"]),
+              ] + ([("Unidade", _un)] if _un else []) + [
               ("Setor / Função", f["ident_setor"]),
               ("Escopo do laudo", f"Coletivo \u2013 aplicável ao Grupo Homogêneo de Exposição (GHE) da função {n.capitalize()}")]),
           P("2. Objetivo", h1),
@@ -266,18 +285,26 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
               P("NEN = LC + q × log<sub>2</sub> [ D / 100 ] &nbsp;&nbsp;(com LC = 85 dB(A); q = 5 dB; D = dose diária)", formula),
               P("equivalente a NEN = 85 + 16,61 × log<sub>10</sub>(D/100), sendo 16,61 = 5/log<sub>10</sub>2 (fator de conversão do logaritmo).",
                 ParagraphStyle("fn", parent=small, alignment=TA_CENTER)), Spacer(1, 3)]
-        cl = "Abaixo do LT; acima do nível de ação" if r["acima"] else "Abaixo do LT e do nível de ação"
+        cl = ("Acima do LT" if ruido_acima_lt else
+              ("Abaixo do LT; acima do nível de ação" if r["acima"] else "Abaixo do LT e do nível de ação"))
         fonte = r["fonte"] + (f"<br/>(histórico: {r['hist']})" if r["hist"] else "")
         S += [grid(["Função", "NEN dB(A)", "Dose 8 h (%)", "LT dB(A)", "Fonte / data", "Classificação"],
                    [[n, r["nen"], r["dose"], "85,0", fonte, cl]],
                    [2.5 * cm, 1.8 * cm, 2.0 * cm, 1.6 * cm, 5.2 * cm, W - 13.1 * cm], shade=[(5, 1, WARN if r["acima"] else OKC)]),
               Spacer(1, 4)]
     extra = (" O NEN supera o nível de ação de 80 dB(A) (NR-09), motivo pelo qual são mantidos o uso de protetor auricular e as ações de "
-             "conservação auditiva.") if r["acima"] else ""
+             "conservação auditiva.") if (r["acima"] and not ruido_acima_lt) else ""
     hist = "" if r["hist"] else ""
-    S += [P(tx("ruido_concl", f"<b>Conclusão:</b> o NEN de {r['nen']} dB(A) situa-se abaixo do limite de tolerância de 85 dB(A) da NR-15, Anexo 1.{hist} Não há "
-            "caracterização de insalubridade por ruído, tampouco exposição apta ao enquadramento para aposentadoria especial (Decreto "
-            "nº 3.048/99, Anexo IV, código 2.0.1)." + extra)),
+    if ruido_acima_lt:
+        _ruido_concl = (f"<b>Conclusão:</b> o NEN de {r['nen']} dB(A) situa-se <b>acima</b> do limite de tolerância de 85 dB(A) da NR-15, Anexo 1. "
+                        "Há caracterização de insalubridade por ruído e exposição passível de enquadramento para aposentadoria especial (Decreto "
+                        "nº 3.048/99, Anexo IV, código 2.0.1), observadas a habitualidade e a permanência da exposição, devendo ser mantidas as "
+                        "medidas de controle e de conservação auditiva.")
+    else:
+        _ruido_concl = (f"<b>Conclusão:</b> o NEN de {r['nen']} dB(A) situa-se abaixo do limite de tolerância de 85 dB(A) da NR-15, Anexo 1.{hist} Não há "
+                        "caracterização de insalubridade por ruído, tampouco exposição apta ao enquadramento para aposentadoria especial (Decreto "
+                        "nº 3.048/99, Anexo IV, código 2.0.1)." + extra)
+    S += [P(tx("ruido_concl", _ruido_concl)),
           P("7.2 \u2013 Exposição ao Calor", h2)]
     c = f["calor"]
     if c["rows"]:
@@ -342,19 +369,35 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
             "do Decreto nº 3.048/99 para a função avaliada.")),
           P("10. Equipamentos de Proteção Coletiva (EPC) e Medidas de Controle", h1), P(f["epc"]),
           P("11. Equipamentos de Proteção Individual (EPI)", h1), P(f["epi"])]
+    if f.get("epi_usa") and f.get("epi_lista"):   # EPIs vindos do PGR (por unidade/setor) e marcados pelo usuário
+        from xml.sax.saxutils import escape as _esc
+        _l_epi = [[_esc(x.get("nome", "")), _esc(x.get("ca", "")) or "—", _esc(x.get("vencimento", "")) or "—",
+                   _esc(x.get("obs", "")) or "—"] for x in f["epi_lista"]]
+        S += [Spacer(1, 3),
+              grid(["EPI", "CA", "Vencimento do CA", "Proteção / observação"], _l_epi,
+                   [W - 11.6 * cm, 3.0 * cm, 3.0 * cm, 5.6 * cm], center_from=1)]
+        if ruido_acima_lt:
+            S += [Spacer(1, 3),
+                  P("<b>Nota:</b> com o ruído acima do limite de tolerância, o fornecimento de EPI não descaracteriza a exposição para fins "
+                    "previdenciários, conforme o entendimento do STF (Tema 555).", small)]
     s = f["sint"]
     S += [P("12. Síntese do Enquadramento Previdenciário", h1),
           KeepTogether([grid(["Função", "Ruído (NEN)", "Calor", "Agentes químicos", "Vibração", "Enquadramento"],
-                             [[n] + s + ["Não caracteriza"]],
-                             [2.6 * cm, 2.6 * cm, 3.0 * cm, 3.2 * cm, 2.8 * cm, W - 14.2 * cm], shade=[(5, 1, OKC)]), Spacer(1, 3),
+                             [[n] + s + [("Caracteriza" if _acima else "Não caracteriza")]],
+                             [2.6 * cm, 2.6 * cm, 3.0 * cm, 3.2 * cm, 2.8 * cm, W - 14.2 * cm], shade=[(5, 1, WARN if _acima else OKC)]), Spacer(1, 3),
                         P(tx("sint_nota", "Agentes biológicos (NR-15, Anexo 14): ausência. Critério de referência: NR-15 e Decreto nº 3.048/99, Anexo IV "
                           "(ruído: código 2.0.1)."), small)]),
           P("13. Conclusão", h1),
-          P(tx("conclusao1", f"Com base nas avaliações ambientais consolidadas, conclui-se que os agentes avaliados situam-se abaixo dos limites de tolerância da "
+          P(tx("conclusao1", (f"Com base nas avaliações ambientais consolidadas, conclui-se que o resultado de {_acima_txt} situa-se acima do limite de "
+            f"tolerância da NR-15, o que <b>caracteriza exposição apta a ensejar o enquadramento da função de {n} como atividade exercida em "
+            "condições especiais</b> (Decreto nº 3.048/99, Anexo IV), observadas a habitualidade e a permanência da exposição.") if _acima else
+            (f"Com base nas avaliações ambientais consolidadas, conclui-se que os agentes avaliados situam-se abaixo dos limites de tolerância da "
             f"NR-15 ou não ocorrem de forma habitual e permanente, e <b>não caracterizam exposição apta a ensejar o enquadramento da função de "
-            f"{n} como atividade exercida em condições especiais</b> (Decreto nº 3.048/99, Anexo IV).")),
-          P(tx("conclusao2", f"Assim, para os fins previdenciários a que se destina este laudo, a função de {n} não se enquadra como atividade especial em "
-            "razão dos agentes avaliados.")),
+            f"{n} como atividade exercida em condições especiais</b> (Decreto nº 3.048/99, Anexo IV)."))),
+          P(tx("conclusao2", (f"Assim, para os fins previdenciários a que se destina este laudo, a função de {n} se enquadra como atividade especial em "
+            "razão do(s) agente(s) acima do limite de tolerância, devendo ser observadas a habitualidade e a permanência da exposição.") if _acima else
+            (f"Assim, para os fins previdenciários a que se destina este laudo, a função de {n} não se enquadra como atividade especial em "
+            "razão dos agentes avaliados."))),
           P("14. Encerramento", h1),
           P(tx("encerramento", "Dou por concluído o objetivo proposto, encerrando este Laudo Técnico das Condições Ambientais do Trabalho para que produza os "
             "efeitos legais cabíveis.")), Spacer(1, 20),

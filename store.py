@@ -88,6 +88,21 @@ def login(usuario, senha):
     return _rpc("fn_ltcat_acesso", {"p_user": usuario, "p_senha": senha}) or None
 
 
+# ----------------------------------------------------------------- dados do PGR (SMA System): EPIs e unidades
+def epis(codigo_empresa):
+    """EPIs do PGR da empresa (codigo no SMA, ex.: 'VMP'). Lista de dicts: unidade, setor, nome, ca, vencimento, observacao."""
+    if modo() != "supabase":
+        return []
+    return _chamar("fn_ltcat_epis", p_empresa=codigo_empresa) or []
+
+
+def unidades(codigo_empresa):
+    """Unidades da empresa no SMA System (lista de textos)."""
+    if modo() != "supabase":
+        return []
+    return _chamar("fn_ltcat_unidades", p_empresa=codigo_empresa) or []
+
+
 # ----------------------------------------------------------------- utilidades locais
 def _jload(path, default=None):
     try:

@@ -242,15 +242,129 @@ EPI_PADRAO = ("Para os agentes avaliados, cujos resultados situam-se abaixo dos 
 SINT_PADRAO = ["", "Sem fonte geradora<br/>de calor", "Ausência", "Não identificada"]
 
 
+EPI_COM_PADRAO = ("Para a função são fornecidos os Equipamentos de Proteção Individual (EPI) relacionados abaixo, conforme o PGR da unidade, "
+                  "com Certificado de Aprovação (CA) do Ministério do Trabalho e Emprego.")
+
+
 def _restaurar_textos(valores):
     """on_click: devolve às caixas de texto (chave -> texto) o texto automático."""
     for k_, v_ in valores.items():
         st.session_state[k_] = v_
 
 
+# ------------------------------------------------------------------ dados do PGR (SMA System): unidades e EPIs
+def _norm(t):
+    """Texto sem acento, maiúsculo e sem espaços nas pontas (para comparar nomes de setor/unidade)."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", str(t or ""))
+    return "".join(ch for ch in s if not unicodedata.combining(ch)).upper().strip()
+
+
+def codigo_sma(emp):
+    """Código da empresa no SMA System (ex.: VMP, CITY). Se não estiver cadastrado, deduz do id (city_sorocaba -> CITY)."""
+    return (emp.get("codigo_sma") or str(emp.get("id", "")).split("_")[0]).strip().upper()
+
+
+def _sma_dados(que, emp):
+    """Lê do SMA (uma vez por sessão; o botão 'Atualizar do PGR' limpa). Devolve lista, ou None se não conseguiu ler."""
+    cache = st.session_state.setdefault("_sma_cache", {})
+    k = (que, codigo_sma(emp))
+    if k not in cache:
+        try:
+            cache[k] = (store.epis(k[1]) if que == "epis" else store.unidades(k[1])) or []
+        except Exception as ex:
+            cache[k] = None
+            st.session_state.setdefault("_sma_erro", {})[k] = str(ex)
+    return cache[k]
+
+
+def _limpar_cache_sma():
+    st.session_state.pop("_sma_cache", None)
+    for k_ in [k_ for k_ in st.session_state if str(k_).startswith("epi_base_")]:
+        st.session_state.pop(k_, None)
+
+
+def _venc_data(s):
+    from datetime import datetime as _dt
+    s = str(s or "").strip()[:10]
+    for f_ in ("%d/%m/%Y", "%Y-%m-%d", "%d/%m/%y"):
+        try:
+            return _dt.strptime(s, f_).date()
+        except ValueError:
+            pass
+    return None
+
+
+def bloco_epi(f, emp, kid):
+    """Item 11 quando a função usa EPI: puxa do PGR (unidade + setor), você marca os que valem e pode digitar os que faltarem."""
+    cA, cB = st.columns([3, 1])
+    cB.button("🔄 Atualizar do PGR", key=f"epi_atu_{kid}", on_click=_limpar_cache_sma, width="stretch")
+    todos = _sma_dados("epis", emp)
+    if todos is None:
+        erro = st.session_state.get("_sma_erro", {}).get(("epis", codigo_sma(emp)), "")
+        st.warning("Não consegui ler os EPIs do PGR (confira se o arquivo 02_ltcat_epis_unidades.sql foi executado no Supabase). "
+                   "Você pode digitar os EPIs na tabela abaixo. " + (f"Detalhe: {erro}" if erro else ""))
+        todos = []
+    un_n = _norm(f.get("unidade"))
+    if not un_n:
+        st.info("Dica: informe a **Unidade** na aba Identificação para listar só os EPIs daquela unidade (PGR é por unidade).")
+    do_un = [r for r in todos if (not un_n) or (not _norm(r.get("unidade"))) or _norm(r.get("unidade")) == un_n]
+    setores = sorted({str(r.get("setor") or "").strip() for r in do_un if str(r.get("setor") or "").strip()}, key=_norm)
+    setor_pgr = ""
+    if setores:
+        pref = _norm(f.get("epi_setor_pgr")) or _norm(f.get("setor"))
+        i0 = next((i for i, s_ in enumerate(setores) if _norm(s_) == pref), 0)
+        setor_pgr = cA.selectbox("Setor no PGR", setores, index=i0, key=f"epi_setor_{kid}",
+                                 help="Os EPIs vêm do PGR da empresa/unidade, por setor. Escolha o setor desta função.")
+        if _norm(setor_pgr) != _norm(f.get("setor")):
+            cA.caption(f"O setor do laudo é “{f.get('setor') or '—'}”; estou mostrando os EPIs do setor “{setor_pgr}” do PGR.")
+    else:
+        cA.info("Nenhum EPI encontrado no PGR para esta empresa/unidade. Digite os EPIs na tabela abaixo.")
+    pgr = [r for r in do_un if _norm(r.get("setor")) == _norm(setor_pgr)] if setor_pgr else []
+    salvos = f.get("epi_lista") or []
+    nomes_salvos = {_norm(x.get("nome")) for x in salvos}
+    mesma_fonte = bool(salvos) and _norm(f.get("epi_setor_pgr")) == _norm(setor_pgr)
+    kb = f"epi_base_{kid}_{_norm(setor_pgr)}"
+    if kb not in st.session_state:   # base congelada: a tabela não volta ao início a cada edição
+        linhas, vistos = [], set()
+        for r in pgr:
+            nm = str(r.get("nome") or "").strip()
+            if not nm or _norm(nm) in vistos:
+                continue
+            vistos.add(_norm(nm))
+            linhas.append({"Usar": (_norm(nm) in nomes_salvos) if mesma_fonte else True, "EPI": nm, "CA": str(r.get("ca") or ""),
+                           "Vencimento do CA": str(r.get("vencimento") or ""), "Proteção / observação": str(r.get("observacao") or "")})
+        for x in salvos:   # EPIs digitados à mão em edições anteriores
+            if _norm(x.get("nome")) not in vistos:
+                linhas.append({"Usar": True, "EPI": x.get("nome", ""), "CA": x.get("ca", ""), "Vencimento do CA": x.get("vencimento", ""),
+                               "Proteção / observação": x.get("obs", "")})
+        st.session_state[kb] = linhas or [{"Usar": True, "EPI": "", "CA": "", "Vencimento do CA": "", "Proteção / observação": ""}]
+    base = pd.DataFrame(st.session_state[kb])
+    st.caption("Marque em **Usar** os EPIs que a função utiliza. Para incluir um EPI que não veio do PGR, adicione uma linha no fim da tabela.")
+    ed = st.data_editor(base, num_rows="dynamic", width="stretch", hide_index=True, key=f"epi_ed_{kid}_{_norm(setor_pgr)}",
+                        column_config={"Usar": st.column_config.CheckboxColumn("Usar", default=True, width="small"),
+                                       "EPI": st.column_config.TextColumn("EPI", width="large"),
+                                       "CA": st.column_config.TextColumn("CA", width="small"),
+                                       "Vencimento do CA": st.column_config.TextColumn("Vencimento do CA", width="small"),
+                                       "Proteção / observação": st.column_config.TextColumn("Proteção / observação", width="medium")})
+    sel = []
+    for _, r_ in ed.fillna("").iterrows():
+        nm = str(r_["EPI"]).strip()
+        if nm and bool(r_["Usar"]):
+            sel.append({"nome": nm, "ca": str(r_["CA"]).strip(), "vencimento": str(r_["Vencimento do CA"]).strip(),
+                        "obs": str(r_["Proteção / observação"]).strip()})
+    f["epi_lista"], f["epi_setor_pgr"] = sel, setor_pgr
+    hoje = date.today()
+    vencidos = [x["nome"] for x in sel if (_venc_data(x["vencimento"]) or hoje) < hoje]
+    if vencidos:
+        st.warning("CA vencido (confira antes de emitir): " + "; ".join(vencidos))
+    if not sel:
+        st.info("Nenhum EPI marcado: o laudo sairá só com o texto acima, sem tabela.")
+
+
 def novo_laudo(empresa_id):
     return {
-        "id": "", "key": "", "nome": "", "setor": "", "ident_setor": "", "empresa_id": empresa_id,
+        "id": "", "key": "", "nome": "", "setor": "", "ident_setor": "", "unidade": "", "empresa_id": empresa_id,
         "data_laudo": data_extenso(date.today()), "instrumentos": "dosímetro de ruído", "vci_ref": False,
         "ambiente": [""], "atividades": "", "agentes_obj": "físicos (ruído e calor), químicos e biológicos",
         "ruido": {"nen": "", "dose": "", "fonte": "Dosimetria", "hist": None, "acima": False},
@@ -409,8 +523,8 @@ if pagina == "Laudos":
     if not L:
         st.info("Nenhum laudo cadastrado.")
     else:
-        df = pd.DataFrame([{"Função": l["nome"], "Setor": l["setor"], "Empresa": E.get(l["empresa_id"], {}).get("nome_curto", "?"),
-                            "Data": l["data_laudo"], "ID": l["id"]} for l in L.values()])
+        df = pd.DataFrame([{"Função": l["nome"], "Setor": l["setor"], "Unidade": l.get("unidade", ""),
+                            "Empresa": E.get(l["empresa_id"], {}).get("nome_curto", "?"), "Data": l["data_laudo"], "ID": l["id"]} for l in L.values()])
         st.caption("Clique em uma linha para selecionar o laudo e use os botões abaixo.")
         ev = st.dataframe(df, width='stretch', hide_index=True, on_select="rerun", selection_mode="single-row", key="tab_laudos")
         linhas_sel = ev.selection.rows if ev is not None and getattr(ev, "selection", None) else []
@@ -481,11 +595,30 @@ elif pagina == "Editar laudo":
     # ---- Identificação
     with tabs[0]:
         c1, c2 = st.columns(2)
+        kid_i = f.get("id") or "novo"
+        f["empresa_id"] = c1.selectbox("Empresa", list(E), index=list(E).index(f["empresa_id"]) if f["empresa_id"] in E else 0,
+                                       format_func=lambda i: E[i]["nome_curto"])
+        # Unidade (o PGR é por unidade): lista vinda do SMA System; "Outra" permite digitar
+        un_sma = _sma_dados("unidades", E[f["empresa_id"]]) or []
+        un_atual = str(f.get("unidade") or "").strip()
+        if un_sma:
+            ops_un = ["(sem unidade)"] + un_sma + ["Outra (digitar)"]
+            if not un_atual:
+                i_un = 0
+            else:
+                i_un = next((i for i, u_ in enumerate(un_sma, start=1) if _norm(u_) == _norm(un_atual)), len(ops_un) - 1)
+            esc_un = c2.selectbox("Unidade", ops_un, index=i_un, key=f"un_sel_{kid_i}",
+                                  help="Unidades cadastradas no SMA System. O PGR e os EPIs são por unidade.")
+            if esc_un == "Outra (digitar)":
+                f["unidade"] = c2.text_input("Digite a unidade", un_atual if i_un == len(ops_un) - 1 else "", key=f"un_txt_{kid_i}").strip()
+            else:
+                f["unidade"] = "" if esc_un == "(sem unidade)" else esc_un
+        else:
+            f["unidade"] = c2.text_input("Unidade", un_atual, key=f"un_txt_{kid_i}",
+                                         help="Ex.: BRÁS, BARRETOS. Usada no cabeçalho do laudo e para buscar os EPIs do PGR.").strip()
         f["nome"] = c1.text_input("Função (como aparece no laudo)", f["nome"]).upper()
         f["setor"] = c2.text_input("Setor (capa)", f["setor"])
         f["ident_setor"] = c1.text_input("Setor / Função (quadro de identificação)", f["ident_setor"] or (f["setor"] + " / " + f["nome"].capitalize()))
-        f["empresa_id"] = c2.selectbox("Empresa", list(E), index=list(E).index(f["empresa_id"]) if f["empresa_id"] in E else 0,
-                                       format_func=lambda i: E[i]["nome_curto"])
         d0 = parse_data(f["data_laudo"])
         dsel = c1.date_input("Data do laudo", d0, format="DD/MM/YYYY")
         f["data_laudo"] = data_extenso(dsel)
@@ -529,7 +662,8 @@ elif pagina == "Editar laudo":
         if r.get("nen"):
             nv = num(r["nen"])
             if nv is not None and nv > 85:
-                st.error("NE acima do limite de 85 dB(A): o texto automático de conclusão (\"abaixo do limite\") não se aplica. Revise.")
+                st.error("NE acima do limite de 85 dB(A): a conclusão do ruído, a síntese (item 12) e a conclusão geral (item 13) passam a usar "
+                         "automaticamente o texto de **acima do limite / caracteriza**. Revise também o texto do EPI (item 11) e as medidas de controle.")
             elif r.get("acima"):
                 st.warning("NE acima do nível de ação (80 dB(A)): o laudo incluirá o texto sobre protetor auricular e conservação auditiva.")
 
@@ -757,9 +891,21 @@ elif pagina == "Editar laudo":
     with tabs[6]:
         kid_s = f.get("id") or "novo"
         f["epc"] = st.text_area("Item 10 – EPC e medidas de controle", f["epc"], height=110)
-        f["epi"] = st.text_area("Item 11 – EPI", f["epi"], height=110, key=f"epi_{kid_s}")
-        st.button("↩️ Restaurar texto automático do EPI", key=f"epi_rest_{kid_s}", on_click=_restaurar_textos,
-                  args=({f"epi_{kid_s}": EPI_PADRAO},))
+        st.markdown("**Item 11 – EPI**")
+        f["epi_usa"] = st.checkbox("Esta função usa EPI (puxar do PGR por setor)", value=bool(f.get("epi_usa")), key=f"epi_usa_{kid_s}",
+                                   help="Desmarcado (ex.: motorista, operação): o laudo diz que não há EPI obrigatório. "
+                                        "Marcado: lista os EPIs do PGR da unidade/setor, e você escolhe os que valem.")
+        if f["epi_usa"]:
+            _epi_antigo = f.get("epi") if f.get("epi") not in (None, "", EPI_PADRAO) else EPI_COM_PADRAO
+            f["epi"] = st.text_area("Texto do item 11 (acima da tabela de EPIs)", _epi_antigo, height=90, key=f"epi_com_{kid_s}")
+            st.button("↩️ Restaurar texto automático do EPI", key=f"epi_rest_com_{kid_s}", on_click=_restaurar_textos,
+                      args=({f"epi_com_{kid_s}": EPI_COM_PADRAO},))
+            bloco_epi(f, E[f["empresa_id"]], kid_s)
+        else:
+            _epi_sem = f.get("epi") if f.get("epi") not in (None, "", EPI_COM_PADRAO) else EPI_PADRAO
+            f["epi"] = st.text_area("Texto do item 11", _epi_sem, height=110, key=f"epi_{kid_s}")
+            st.button("↩️ Restaurar texto automático do EPI", key=f"epi_rest_{kid_s}", on_click=_restaurar_textos,
+                      args=({f"epi_{kid_s}": EPI_PADRAO},))
         st.markdown("**Síntese (item 12)** — o ruído é preenchido automaticamente. Use **Enter** para quebrar a linha.")
         s = list(f.get("sint") or ["", "", "", ""])
         kid_s = f.get("id") or "novo"
@@ -837,6 +983,13 @@ elif pagina == "Editar laudo":
             with st.expander(titulo_g + (f"  ·  ✏️ {n_ed} editado(s)" if n_ed else ""), expanded=bool(n_ed)):
                 for k in chaves:
                     padrao_k = padrao[k]
+                    # texto NÃO editado acompanha o automático quando os dados mudam (ex.: NE passou do limite)
+                    kw_, kp_ = f"tx_{idl}_{k}", f"txpad_{idl}_{k}"
+                    ant_ = st.session_state.get(kp_)
+                    if kw_ in st.session_state and ant_ is not None and ant_ != padrao_k and st.session_state[kw_] == ant_:
+                        st.session_state[kw_] = padrao_k
+                        txs.pop(k, None)
+                    st.session_state[kp_] = padrao_k
                     atual = txs.get(k) or padrao_k
                     rot = ROTULOS.get(k, k) + ("  ✏️ editado" if k in ja_editados else "")
                     novo_v = st.text_area(rot, atual, height=max(90, min(320, 22 * (len(atual) // 95 + 2))), key=f"tx_{idl}_{k}")
@@ -870,7 +1023,7 @@ elif pagina == "Editar laudo":
                 dados_prev = st.session_state.get(chave_prev)
                 if dados_prev:
                     pdf_prev, imgs_prev = dados_prev
-                    nome_pdf = f"LTCAT_{slug(f['nome']) or 'laudo'}_{E[f['empresa_id']]['id'].upper()}.pdf"
+                    nome_pdf = f"LTCAT_{slug(f['nome']) or 'laudo'}{('_' + slug(f['unidade'])) if f.get('unidade') else ''}_{E[f['empresa_id']]['id'].upper()}.pdf"
                     st.download_button("⬇️ Baixar PDF", pdf_prev, file_name=nome_pdf, mime="application/pdf", type="primary", width='stretch', key="dl_prev")
                     st.caption(f"{len(imgs_prev)} página(s) · é assim que o laudo será impresso. Edite à esquerda e a prévia acompanha.")
                     with st.container(height=max(320, altura - 150), border=True):
@@ -887,7 +1040,7 @@ elif pagina == "Editar laudo":
             st.error("Informe o nome da função.")
             return False
         if not f["id"]:
-            f["id"] = slug(f["nome"]).lower()
+            f["id"] = slug(f["nome"] + (" " + f["unidade"] if f.get("unidade") else "")).lower()
             base, i = f["id"], 2
             while store.existe("laudo", f["id"]):
                 f["id"] = f"{base}_{i}"
@@ -905,7 +1058,7 @@ elif pagina == "Editar laudo":
             if gerar:
                 try:
                     pdf_final, _ = _previa_pdf(E[f["empresa_id"]], store.obter_signatario(), f, 120)
-                    st.download_button("⬇️ Baixar PDF", pdf_final, file_name=f"LTCAT_{f['key']}_{E[f['empresa_id']]['id'].upper()}.pdf",
+                    st.download_button("⬇️ Baixar PDF", pdf_final, file_name=f"LTCAT_{f['key']}{('_' + slug(f['unidade'])) if f.get('unidade') else ''}_{E[f['empresa_id']]['id'].upper()}.pdf",
                                        mime="application/pdf", type="primary", key="dl_final")
                 except Exception as ex:
                     st.error(f"Erro ao gerar o PDF: {ex}")
@@ -926,6 +1079,8 @@ elif pagina == "Empresas":
         e["cnpj"] = c1.text_input("CNPJ", e["cnpj"])
         e["grau_risco"] = c2.text_input("Grau de risco", e["grau_risco"])
         e["cnae"] = st.text_input("CNAE / atividade", e["cnae"])
+        e["codigo_sma"] = st.text_input("Código da empresa no SMA System (ex.: VMP, CITY)", e.get("codigo_sma") or codigo_sma(e),
+                                        help="Usado para buscar as unidades e os EPIs do PGR desta empresa.").strip().upper()
     with st.container(border=True):
         st.markdown("##### Endereço e rodapé do laudo")
         e["endereco"] = st.text_input("Endereço completo (quadro de identificação)", e["endereco"])
