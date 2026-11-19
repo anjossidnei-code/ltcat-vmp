@@ -371,11 +371,9 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
           P("11. Equipamentos de Proteção Individual (EPI)", h1), P(f["epi"])]
     if f.get("epi_usa") and f.get("epi_lista"):   # EPIs vindos do PGR (por unidade/setor) e marcados pelo usuário
         from xml.sax.saxutils import escape as _esc
-        _l_epi = [[_esc(x.get("nome", "")), _esc(x.get("ca", "")) or "—", _esc(x.get("vencimento", "")) or "—",
-                   _esc(x.get("obs", "")) or "—"] for x in f["epi_lista"]]
+        _l_epi = [[_esc(x.get("nome", "")), _esc(x.get("ca", "")) or "—"] for x in f["epi_lista"]]
         S += [Spacer(1, 3),
-              grid(["EPI", "CA", "Vencimento do CA", "Proteção / observação"], _l_epi,
-                   [W - 11.6 * cm, 3.0 * cm, 3.0 * cm, 5.6 * cm], center_from=1)]
+              grid(["EPI", "CA"], _l_epi, [W - 4.0 * cm, 4.0 * cm], center_from=1)]
         if ruido_acima_lt:
             S += [Spacer(1, 3),
                   P("<b>Nota:</b> com o ruído acima do limite de tolerância, o fornecimento de EPI não descaracteriza a exposição para fins "
