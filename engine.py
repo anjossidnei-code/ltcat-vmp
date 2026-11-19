@@ -362,8 +362,11 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
     elif q["rows"]:
         S += [grid(["Agente / fonte", "Frequência", "Via", "Controle (EPI)"], q["rows"],
                    [W - 9.2 * cm, 2.4 * cm, 2.4 * cm, 4.4 * cm], center_from=1), Spacer(1, 4), P("<b>Conclusão:</b> " + q["concl"])]
+    elif q.get("contato"):   # exposição por contato (ex.: graxa e óleo), neutralizada por EPI: só texto, sem tabela
+        if (q.get("concl") or "").strip():
+            S += [P("<b>Conclusão:</b> " + q["concl"])]
     else:
-        S += [P(tx("quim_sem", "Não há enquadramento no Anexo IV do Decreto nº 3.048/99 nem insalubridade pela NR-15 (Anexos 10 a 13) para a função."))]
+        S += [P(tx("quim_sem","Não há enquadramento no Anexo IV do Decreto nº 3.048/99 nem insalubridade pela NR-15 (Anexos 10 a 13) para a função."))]
     S += [P("9. Exposição a Agentes Biológicos", h1),
           P(tx("bio", "Não foi verificado contato com os agentes biológicos constantes do Anexo 14 da NR-15, tampouco exposição enquadrável no Anexo IV "
             "do Decreto nº 3.048/99 para a função avaliada.")),
@@ -374,10 +377,6 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
         _l_epi = [[_esc(x.get("nome", "")), _esc(x.get("ca", "")) or "—"] for x in f["epi_lista"]]
         S += [Spacer(1, 3),
               grid(["EPI", "CA"], _l_epi, [W - 4.0 * cm, 4.0 * cm], center_from=1)]
-        if ruido_acima_lt:
-            S += [Spacer(1, 3),
-                  P("<b>Nota:</b> com o ruído acima do limite de tolerância, o fornecimento de EPI não descaracteriza a exposição para fins "
-                    "previdenciários, conforme o entendimento do STF (Tema 555).", small)]
     s = f["sint"]
     S += [P("12. Síntese do Enquadramento Previdenciário", h1),
           KeepTogether([grid(["Função", "Ruído (NEN)", "Calor", "Agentes químicos", "Vibração", "Enquadramento"],

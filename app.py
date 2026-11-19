@@ -239,7 +239,16 @@ QUIM_SEM_PADRAO = ("Observação: não foi constatada exposição a agentes quí
                    "quantitativa ou caracterize nocividade.")
 EPI_PADRAO = ("Para os agentes avaliados, cujos resultados situam-se abaixo dos respectivos limites de tolerância, não há EPI "
               "obrigatório para neutralização de nocividade.")
-SINT_PADRAO = ["", "Sem fonte geradora<br/>de calor", "Ausência", "Não identificada"]
+CONTATO_AGENTE_PADRAO = "peças impregnadas por hidrocarbonetos (graxa e óleo mineral)"
+CONTATO_EPI_PADRAO = "cremes protetores para a pele (óleo resistentes)"
+
+
+def contato_texto(agente, protecao):
+    return (f"Tem contato com {agente.strip()}, cujos efeitos nocivos são neutralizados pelo uso correto de {protecao.strip()}, "
+            "cujos respectivos CAs se encontram no item 11 deste laudo.")
+
+
+SINT_PADRAO =["", "Sem fonte geradora<br/>de calor", "Ausência", "Não identificada"]
 
 
 EPI_COM_PADRAO = ("Para a função são fornecidos os Equipamentos de Proteção Individual (EPI) relacionados abaixo, conforme o PGR da unidade, "
@@ -839,13 +848,37 @@ elif pagina == "Editar laudo":
             modo_q = "Quantitativo (resultados de laboratório)"
         elif q.get("rows"):
             modo_q = "Qualitativo (tabela de contato)"
-        modo_q = st.radio("Situação dos agentes químicos", ["Sem exposição (observação)", "Qualitativo (tabela de contato)",
-                                                            "Quantitativo (resultados de laboratório)"],
-                          index=["Sem exposição (observação)", "Qualitativo (tabela de contato)", "Quantitativo (resultados de laboratório)"].index(modo_q))
+        elif q.get("contato"):
+            modo_q = "Com contato (texto, ex.: graxa e óleo)"
+        _ops_q = ["Sem exposição (observação)", "Com contato (texto, ex.: graxa e óleo)", "Qualitativo (tabela de contato)",
+                  "Quantitativo (resultados de laboratório)"]
+        modo_q = st.radio("Situação dos agentes químicos", _ops_q, index=_ops_q.index(modo_q))
         kq_ = f.get("id") or "novo"
         k_qi = f"q_intro_{kq_}"
-        q["intro"] = st.text_area("Texto de abertura do item 8", q.get("intro", ""), height=130, key=k_qi)
-        if modo_q.startswith("Sem"):
+        if modo_q.startswith("Com contato"):
+            k_ca, k_ce, k_ct, k_cc = f"q_c_ag_{kq_}", f"q_c_epi_{kq_}", f"q_c_txt_{kq_}", f"q_c_concl_{kq_}"
+            st.caption("Para quem tem contato com agentes químicos neutralizado por EPI (ex.: mecânico, funileiro: graxa e óleo mineral). "
+                       "O texto remete ao **item 11**, onde ficam os CAs; marque lá “Esta função usa EPI” e escolha os EPIs.")
+            cq1, cq2 = st.columns(2)
+            ag_ = cq1.text_input("Tem contato com", q.get("contato_agente") or CONTATO_AGENTE_PADRAO, key=k_ca)
+            pr_ = cq2.text_input("Efeitos neutralizados pelo uso correto de", q.get("contato_epi") or CONTATO_EPI_PADRAO, key=k_ce)
+            txt_auto_ = contato_texto(ag_, pr_)
+            intro_c = st.text_area("Texto do item 8", (q.get("intro") if q.get("contato") and q.get("intro") else txt_auto_), height=130, key=k_ct)
+            st.button("✨ Montar o texto com os campos acima", key=f"q_c_montar_{kq_}", on_click=_restaurar_textos, args=({k_ct: txt_auto_},))
+            concl_c = st.text_area("Conclusão do item 8 (opcional; em branco não sai no laudo)", q.get("concl") or "", height=100, key=k_cc)
+            if not st.session_state.get(f"epi_usa_{kq_}", f.get("epi_usa")):
+                st.warning("O texto cita os CAs no item 11, mas “Esta função usa EPI” ainda não está marcado em Medidas e síntese.")
+            q = {"rows": None, "contato": True, "intro": intro_c, "concl": (concl_c.strip() or None),
+                 "contato_agente": ag_, "contato_epi": pr_}
+            f["quim"] = q
+            q_pronto = True
+        else:
+            q_pronto = False
+            q["intro"] = st.text_area("Texto de abertura do item 8",
+                                      QUIM_SEM_PADRAO if q.get("contato") else q.get("intro", ""), height=130, key=k_qi)
+        if q_pronto:
+            pass
+        elif modo_q.startswith("Sem"):
             st.button("↩️ Restaurar texto automático (sem exposição)", key=f"q_rest_{kq_}", on_click=_restaurar_textos,
                       args=({k_qi: QUIM_SEM_PADRAO},))
             q = {"rows": None, "intro": q["intro"], "concl": None}
