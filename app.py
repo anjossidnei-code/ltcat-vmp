@@ -239,7 +239,15 @@ QUIM_SEM_PADRAO = ("Observação: não foi constatada exposição a agentes quí
                    "quantitativa ou caracterize nocividade.")
 EPI_PADRAO = ("Para os agentes avaliados, cujos resultados situam-se abaixo dos respectivos limites de tolerância, não há EPI "
               "obrigatório para neutralização de nocividade.")
-CONTATO_AGENTE_PADRAO = "peças impregnadas por hidrocarbonetos (graxa e óleo mineral)"
+def vib_texto(data, origem, signatario, posto, veiculo):
+    """Texto do item 7.3 quando há avaliação de vibração de referência (data, quem fez, posto e veículo avaliados)."""
+    d, o, s = data.strip() or "[data]", origem.strip() or "[como foi realizada]", signatario.strip() or "[signatário]"
+    p, v = posto.strip() or "[posto de trabalho]", veiculo.strip() or "[veículo / instrumento avaliado]"
+    return (f"Em {d} através de {o} foi realizado um Laudo Técnico de Exposição Ocupacional a Vibrações Mecânicas cujo signatário é o {s}. "
+            f"Nesta ocasião foi avaliado o posto de trabalho {p}, {v}.")
+
+
+CONTATO_AGENTE_PADRAO ="peças impregnadas por hidrocarbonetos (graxa e óleo mineral)"
 CONTATO_EPI_PADRAO = "cremes protetores para a pele (óleo resistentes)"
 
 
@@ -824,21 +832,47 @@ elif pagina == "Editar laudo":
     # ---- Vibração
     with tabs[4]:
         kv_ = f.get("id") or "novo"
-        k_vt, k_vc = f"vib_txt_{kv_}", f"vib_concl_{kv_}"
-        vt = st.text_area("Texto da vibração (parágrafos separados por linha em branco; aceita <super>1,75</super>)",
-                          "\n\n".join(f["vibracao"]), height=150, key=k_vt)
-        f["vibracao"] = [p.strip() for p in re.split(r"\n\s*\n", vt) if p.strip()]
-        use_vt = st.checkbox("Incluir tabela de referência (aren / VDVR)", value=bool(f.get("vib_tab")))
+        k_vt, k_vc = f"vib_txt_{kv_}", f"vib_concl_{kv_}"            # sem avaliação (texto automático)
+        k_vt2, k_vc2 = f"vib_txt_ref_{kv_}", f"vib_concl_ref_{kv_}"  # com avaliação/tabela (texto sobre a avaliação realizada)
+        tinha_tab = bool(f.get("vib_tab"))
+        use_vt = st.checkbox("Incluir tabela de referência (aren / VDVR) — há avaliação de vibração realizada", value=tinha_tab,
+                             key=f"vib_usa_{kv_}")
         if use_vt:
+            vr = f.get("vib_ref") or {}
+            st.caption("Informe a avaliação de vibração usada como referência: o texto do item 7.3 é montado automaticamente (e pode ser editado).")
+            vr1, vr2 = st.columns(2)
+            v_data = vr1.text_input("Data da avaliação", vr.get("data", ""), placeholder="dd/mm/aaaa", key=f"vib_data_{kv_}")
+            v_orig = vr2.text_input("Como foi realizada", vr.get("origem") or "perícia trabalhista", key=f"vib_orig_{kv_}",
+                                    help="Ex.: perícia trabalhista, avaliação ambiental própria, laudo de empresa terceirizada.")
+            v_sig = st.text_input("Quem realizou (nome, título e CREA)", vr.get("signatario", ""), key=f"vib_sig_{kv_}",
+                                  placeholder="Engenheiro de Segurança do Trabalho Sr. Fulano de Tal (CREA: 0000000000/D)")
+            v_posto = st.text_input("Posto de trabalho avaliado", vr.get("posto") or (("do " + f["nome"].lower()) if f.get("nome") else ""),
+                                    key=f"vib_posto_{kv_}")
+            v_veic = st.text_area("Veículo / instrumento avaliado", vr.get("veiculo", ""), height=80, key=f"vib_veic_{kv_}",
+                                  placeholder="em um ônibus marca Mercedes Benz, encarroçado pela empresa INDUSCAR, modelo Apache, ano 2018/2019, "
+                                              "placa EES9A91, Barretos, SP, motor dianteiro")
+            f["vib_ref"] = {"data": v_data, "origem": v_orig, "signatario": v_sig, "posto": v_posto, "veiculo": v_veic}
+            vib_auto = vib_texto(v_data, v_orig, v_sig, v_posto, v_veic)
+            vt = st.text_area("Texto da vibração (parágrafos separados por linha em branco; aceita <super>1,75</super>)",
+                              "\n\n".join(f["vibracao"]) if tinha_tab else vib_auto, height=150, key=k_vt2)
+            st.button("✨ Montar o texto com os dados acima", key=f"vib_montar_{kv_}", on_click=_restaurar_textos, args=({k_vt2: vib_auto},))
             base = pd.DataFrame(f.get("vib_tab") or [["aren", "0,5 m/s²", "1,1 m/s²", ""], ["VDVR", "9,1 m/s<super>1,75</super>", "21,0 m/s<super>1,75</super>", ""]],
                                 columns=["Parâmetro", "Nível de Ação", "Limite de Exposição", "Referência"])
             ed = st.data_editor(base, num_rows="dynamic", width='stretch', key="vib_ed")
             f["vib_tab"] = ed.fillna("").astype(str).values.tolist()
+            f["vib_concl"] = st.text_area("Conclusão da vibração (após \"Conclusão:\"; em branco não sai no laudo)",
+                                          f["vib_concl"] if tinha_tab else "", height=90, key=k_vc2,
+                                          placeholder="Ex.: os valores obtidos (aren e VDVR) situam-se abaixo do nível de ação da NR-09, Anexo 1.")
+            f["vibracao"] = [p.strip() for p in re.split(r"\n\s*\n", vt) if p.strip()]
         else:
-            f["vib_tab"] = None
-        f["vib_concl"] = st.text_area("Conclusão da vibração (após \"Conclusão:\")", f["vib_concl"], height=80, key=k_vc)
-        st.button("↩️ Restaurar texto automático (sem avaliação quantitativa)", key=f"vib_rest_{kv_}", on_click=_restaurar_textos,
-                  args=({k_vt: VIB_PADRAO, k_vc: VIB_CONCL_PADRAO},))
+            f["vib_tab"], f["vib_ref"] = None, None
+            vt = st.text_area("Texto da vibração (parágrafos separados por linha em branco; aceita <super>1,75</super>)",
+                              VIB_PADRAO if tinha_tab else "\n\n".join(f["vibracao"]), height=150, key=k_vt)
+            f["vibracao"] = [p.strip() for p in re.split(r"\n\s*\n", vt) if p.strip()]
+            f["vib_concl"] = st.text_area("Conclusão da vibração (após \"Conclusão:\")",
+                                          VIB_CONCL_PADRAO if tinha_tab else f["vib_concl"], height=80, key=k_vc)
+            st.button("↩️ Restaurar texto automático (sem avaliação quantitativa)", key=f"vib_rest_{kv_}", on_click=_restaurar_textos,
+                      args=({k_vt: VIB_PADRAO, k_vc: VIB_CONCL_PADRAO},))
 
     # ---- Químicos
     with tabs[5]:

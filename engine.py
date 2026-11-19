@@ -248,7 +248,7 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
     _t_met = tx("met_calor", _met_calor)
     if _t_met:
         S += [P(_t_met)]
-    if f.get("vci_ref"):
+    if f.get("vci_ref") or f.get("vib_tab"):
         S += [P(tx("met_vci", "<b>Vibração de corpo inteiro (VCI):</b> avaliação conforme NR-09, Anexo 1 e NHO-09 da Fundacentro, pela Aceleração Resultante de "
                 "Exposição Normalizada (aren) e pelo Valor da Dose de Vibração Resultante (VDVR), com base em resultado de referência da mesma "
                 "frota (item 7.3)."))]
@@ -360,7 +360,9 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
     if f["vib_tab"]:
         S += [grid(["Parâmetro", "Nível de Ação", "Limite de Exposição", "Referência"], f["vib_tab"],
                    [3.0 * cm, 3.6 * cm, 4.2 * cm, W - 10.8 * cm]), Spacer(1, 3)]
-    S += [P("<b>Conclusão:</b> " + f["vib_concl"]), P("8. Exposição a Agentes Químicos", h1), P(f["quim"]["intro"])]
+    if (f.get("vib_concl") or "").strip():
+        S += [P("<b>Conclusão:</b> " + f["vib_concl"])]
+    S += [P("8. Exposição a Agentes Químicos", h1), P(f["quim"]["intro"])]
     q = f["quim"]
     if q.get("res"):
         for cap, hdr, rws in q["res"]:
