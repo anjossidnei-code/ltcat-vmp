@@ -232,6 +232,22 @@ CALOR_MET_PADRAO = ("<b>Calor:</b> avaliação qualitativa conforme Anexo 3 da N
                     "o tipo de atividade e o regime de trabalho no posto, para verificação da necessidade de avaliação quantitativa (IBUTG).")
 
 
+# textos automáticos (usados quando NÃO há avaliação quantitativa) — também alimentam os botões "Restaurar texto automático"
+VIB_PADRAO = "Na inspeção não foi constatada exposição a vibração de corpo inteiro (Anexo 8 da NR-15 / NR-09, Anexo 1) para a função."
+VIB_CONCL_PADRAO = "não há agente vibração a caracterizar para a função."
+QUIM_SEM_PADRAO = ("Observação: não foi constatada exposição a agentes químicos na função que demande avaliação "
+                   "quantitativa ou caracterize nocividade.")
+EPI_PADRAO = ("Para os agentes avaliados, cujos resultados situam-se abaixo dos respectivos limites de tolerância, não há EPI "
+              "obrigatório para neutralização de nocividade.")
+SINT_PADRAO = ["", "Sem fonte geradora<br/>de calor", "Ausência", "Não identificada"]
+
+
+def _restaurar_textos(valores):
+    """on_click: devolve às caixas de texto (chave -> texto) o texto automático."""
+    for k_, v_ in valores.items():
+        st.session_state[k_] = v_
+
+
 def novo_laudo(empresa_id):
     return {
         "id": "", "key": "", "nome": "", "setor": "", "ident_setor": "", "empresa_id": empresa_id,
@@ -664,8 +680,10 @@ elif pagina == "Editar laudo":
 
     # ---- Vibração
     with tabs[4]:
+        kv_ = f.get("id") or "novo"
+        k_vt, k_vc = f"vib_txt_{kv_}", f"vib_concl_{kv_}"
         vt = st.text_area("Texto da vibração (parágrafos separados por linha em branco; aceita <super>1,75</super>)",
-                          "\n\n".join(f["vibracao"]), height=150)
+                          "\n\n".join(f["vibracao"]), height=150, key=k_vt)
         f["vibracao"] = [p.strip() for p in re.split(r"\n\s*\n", vt) if p.strip()]
         use_vt = st.checkbox("Incluir tabela de referência (aren / VDVR)", value=bool(f.get("vib_tab")))
         if use_vt:
@@ -675,7 +693,9 @@ elif pagina == "Editar laudo":
             f["vib_tab"] = ed.fillna("").astype(str).values.tolist()
         else:
             f["vib_tab"] = None
-        f["vib_concl"] = st.text_area("Conclusão da vibração (após \"Conclusão:\")", f["vib_concl"], height=80)
+        f["vib_concl"] = st.text_area("Conclusão da vibração (após \"Conclusão:\")", f["vib_concl"], height=80, key=k_vc)
+        st.button("↩️ Restaurar texto automático (sem avaliação quantitativa)", key=f"vib_rest_{kv_}", on_click=_restaurar_textos,
+                  args=({k_vt: VIB_PADRAO, k_vc: VIB_CONCL_PADRAO},))
 
     # ---- Químicos
     with tabs[5]:
@@ -688,8 +708,12 @@ elif pagina == "Editar laudo":
         modo_q = st.radio("Situação dos agentes químicos", ["Sem exposição (observação)", "Qualitativo (tabela de contato)",
                                                             "Quantitativo (resultados de laboratório)"],
                           index=["Sem exposição (observação)", "Qualitativo (tabela de contato)", "Quantitativo (resultados de laboratório)"].index(modo_q))
-        q["intro"] = st.text_area("Texto de abertura do item 8", q.get("intro", ""), height=130)
+        kq_ = f.get("id") or "novo"
+        k_qi = f"q_intro_{kq_}"
+        q["intro"] = st.text_area("Texto de abertura do item 8", q.get("intro", ""), height=130, key=k_qi)
         if modo_q.startswith("Sem"):
+            st.button("↩️ Restaurar texto automático (sem exposição)", key=f"q_rest_{kq_}", on_click=_restaurar_textos,
+                      args=({k_qi: QUIM_SEM_PADRAO},))
             q = {"rows": None, "intro": q["intro"], "concl": None}
         elif modo_q.startswith("Qualit"):
             base = pd.DataFrame(q.get("rows") or [["", "Intermitente", "Dérmica", "Creme protetor para as mãos"]],
@@ -731,8 +755,11 @@ elif pagina == "Editar laudo":
 
     # ---- Medidas e síntese
     with tabs[6]:
+        kid_s = f.get("id") or "novo"
         f["epc"] = st.text_area("Item 10 – EPC e medidas de controle", f["epc"], height=110)
-        f["epi"] = st.text_area("Item 11 – EPI", f["epi"], height=110)
+        f["epi"] = st.text_area("Item 11 – EPI", f["epi"], height=110, key=f"epi_{kid_s}")
+        st.button("↩️ Restaurar texto automático do EPI", key=f"epi_rest_{kid_s}", on_click=_restaurar_textos,
+                  args=({f"epi_{kid_s}": EPI_PADRAO},))
         st.markdown("**Síntese (item 12)** — o ruído é preenchido automaticamente. Use **Enter** para quebrar a linha.")
         s = list(f.get("sint") or ["", "", "", ""])
         kid_s = f.get("id") or "novo"
@@ -744,7 +771,10 @@ elif pagina == "Editar laudo":
         if f["ruido"].get("nen"):
             s[0] = f"{f['ruido']['nen']} dB(A)<br/>(LT 85)"
         f["sint"] = s
-        rec = st.text_area("Recomendações (uma por linha; campo interno, não é impresso no laudo)", "\n".join(f.get("rec") or []), height=110)
+        st.button("↩️ Restaurar texto automático da síntese (calor, químicos, vibração)", key=f"sint_rest_{kid_s}", on_click=_restaurar_textos,
+                  args=({f"sint_calor_{kid_s}": _com_enter(SINT_PADRAO[1]), f"sint_quim_{kid_s}": _com_enter(SINT_PADRAO[2]),
+                         f"sint_vib_{kid_s}": _com_enter(SINT_PADRAO[3])},))
+        rec =st.text_area("Recomendações (uma por linha; campo interno, não é impresso no laudo)", "\n".join(f.get("rec") or []), height=110)
         f["rec"] = [x.strip() for x in rec.split("\n") if x.strip()]
 
     # ---- Textos do laudo (todos os textos fixos do modelo, editáveis)
@@ -784,6 +814,9 @@ elif pagina == "Editar laudo":
             st.warning(f"Preencha os dados básicos do laudo (função, empresa, ruído) para liberar a edição dos textos. ({e_t})")
         txs = dict(f.get("textos") or {})
         idl = f.get("id") or "novo"
+        if padrao:
+            st.button("↩️ Restaurar TODOS os textos automáticos", key=f"tx_rest_todos_{idl}", on_click=_restaurar_textos,
+                      args=({f"tx_{idl}_{k_}": v_ for k_, v_ in padrao.items()},))
         GRUPOS = [
             ("📜 Capa, objetivo e diligência", ["fundamentacao", "objetivo", "diligencia", "exposicao"]),
             ("🔬 Metodologia", ["met_ruido", "met_calor", "met_vci", "met_quim"]),
