@@ -296,10 +296,18 @@ def build(emp, sig, f, DATA, outpath, coletar=None):
              "conservação auditiva.") if (r["acima"] and not ruido_acima_lt) else ""
     hist = "" if r["hist"] else ""
     if ruido_acima_lt:
-        _ruido_concl = (f"<b>Conclusão:</b> o NEN de {r['nen']} dB(A) situa-se <b>acima</b> do limite de tolerância de 85 dB(A) da NR-15, Anexo 1. "
-                        "Há caracterização de insalubridade por ruído e exposição passível de enquadramento para aposentadoria especial (Decreto "
-                        "nº 3.048/99, Anexo IV, código 2.0.1), observadas a habitualidade e a permanência da exposição, devendo ser mantidas as "
-                        "medidas de controle e de conservação auditiva.")
+        if f.get("epi_usa") and f.get("epi_lista"):   # há EPI (item 11): neutraliza a insalubridade, mas não afasta a exposição previdenciária
+            _ruido_concl = (f"<b>Conclusão:</b> o NEN de {r['nen']} dB(A) situa-se <b>acima</b> do limite de tolerância de 85 dB(A) da NR-15, Anexo 1. "
+                            "Para fins de insalubridade, a nocividade é <b>neutralizada</b> pelo fornecimento e pelo uso correto do protetor auricular, "
+                            "com Certificado de Aprovação (CA) e atenuação adequados, relacionado no item 11 deste laudo (art. 191, II, da CLT), "
+                            "devendo ser mantidos o programa de conservação auditiva e o controle do uso. Para fins previdenciários, a exposição "
+                            "acima de 85 dB(A) é passível de enquadramento (Decreto nº 3.048/99, Anexo IV, código 2.0.1), observadas a habitualidade "
+                            "e a permanência, pois o EPI não afasta a exposição ao ruído nesse âmbito (STF, Tema 555).")
+        else:
+            _ruido_concl = (f"<b>Conclusão:</b> o NEN de {r['nen']} dB(A) situa-se <b>acima</b> do limite de tolerância de 85 dB(A) da NR-15, Anexo 1. "
+                            "Há caracterização de insalubridade por ruído e exposição passível de enquadramento para aposentadoria especial (Decreto "
+                            "nº 3.048/99, Anexo IV, código 2.0.1), observadas a habitualidade e a permanência da exposição, devendo ser mantidas as "
+                            "medidas de controle e de conservação auditiva.")
     else:
         _ruido_concl = (f"<b>Conclusão:</b> o NEN de {r['nen']} dB(A) situa-se abaixo do limite de tolerância de 85 dB(A) da NR-15, Anexo 1.{hist} Não há "
                         "caracterização de insalubridade por ruído, tampouco exposição apta ao enquadramento para aposentadoria especial (Decreto "
