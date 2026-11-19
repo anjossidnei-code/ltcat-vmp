@@ -131,7 +131,10 @@ textarea,input{font-size:.9rem !important}
 [class*="st-key-card_"]:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(4,44,89,.17)}
 [class*="st-key-card_"]:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#19B394}
 [class*="st-key-card_alerta_"]:before{background:#E5484D}
-[class*="st-key-card_"] .stButton>button{padding:.3rem .45rem;font-size:.8rem;min-height:0}
+[class*="st-key-card_"] .stButton>button{height:2.15rem;min-height:0;padding:0 .4rem;font-size:.8rem;line-height:1;display:flex;align-items:center;justify-content:center;gap:.25rem}
+[class*="st-key-card_"] .stButton>button p{margin:0;line-height:1}
+[class*="st-key-card_"] [data-testid="stMarkdownContainer"]{margin-bottom:0 !important}
+[class*="st-key-card_"] [data-testid="stHorizontalBlock"]{align-items:center;gap:.4rem}
 .lc-top{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.35rem}
 .lc-emp{display:inline-flex;align-items:center;gap:.4rem;font-size:.7rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--suave);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lc-emp i{width:9px;height:9px;border-radius:50%;display:inline-block;flex:0 0 auto}
@@ -140,13 +143,13 @@ textarea,input{font-size:.9rem !important}
 .lc-badge.bad{background:#FDE4E5;color:#B42328}
 .lc-fn{font-size:1.12rem;font-weight:800;color:var(--azul);line-height:1.2;letter-spacing:-.2px;margin-bottom:.15rem}
 .lc-sub{font-size:.82rem;color:var(--suave);margin-bottom:.55rem;min-height:1.1em}
-.lc-chips{margin-bottom:.3rem}
+.lc-chips{margin-bottom:.2rem;min-height:3.7rem}
 .lc-chip{display:inline-flex;align-items:center;font-size:.7rem;font-weight:700;padding:.2rem .55rem;border-radius:999px;margin:0 .3rem .3rem 0}
 .lc-chip.ok{background:#E3F6EF;color:#0E7A60}
 .lc-chip.warn{background:#FFF1D6;color:#9A6200}
 .lc-chip.bad{background:#FDE4E5;color:#B42328}
 .lc-chip.neutral{background:#EAF0F8;color:#4A5C78}
-.lc-data{font-size:.76rem;color:var(--suave);margin-bottom:.1rem}
+.lc-data{font-size:.76rem;color:var(--suave);border-top:1px solid #EEF2F8;padding:.55rem 0 .7rem;margin-top:.1rem}
 .vazio{text-align:center;background:#fff;border:2px dashed #B9C7DB;border-radius:18px;padding:2.4rem 1rem;margin-top:.6rem}
 .vazio .em{font-size:2.6rem;margin-bottom:.3rem}
 .vazio h3{margin:.1rem 0 .3rem;color:var(--azul)}
@@ -572,7 +575,7 @@ if "msg" not in st.session_state:
 # ================================================================== LAUDOS
 from html import escape as _h0
 
-_PALETA = ["#01A0D6", "#7C5CFC", "#19B394", "#F0801A", "#E5484D", "#3B82F6"]
+_PALETA = ["#01A0D6", "#7C5CFC", "#19B394", "#F0801A", "#3B82F6", "#C026D3"]   # sem vermelho: vermelho fica só para alerta
 
 
 def _h(t):
