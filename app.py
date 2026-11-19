@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Sistema LTCAT - programa local para elaborar laudos (Fase 1 + leitura de documentos)."""
 import copy
 import glob
@@ -105,6 +105,52 @@ button[role="tab"][aria-selected="true"]{color:var(--azul);font-weight:700}
 [data-testid="stVerticalBlock"]{gap:.7rem}
 textarea,input{font-size:.9rem !important}
 [data-testid="stWidgetLabel"] p{font-size:.78rem}
+/* ---- tela Laudos: faixa de boas-vindas, indicadores e cartões ---- */
+.hero{position:relative;overflow:hidden;border-radius:18px;padding:1.35rem 1.7rem 1.45rem;margin:0 0 1rem;color:#fff;background:linear-gradient(120deg,#042C59 0%,#0170A3 62%,#01A0D6 100%);box-shadow:0 10px 28px rgba(4,44,89,.22)}
+.hero:before{content:"";position:absolute;right:-60px;top:-80px;width:270px;height:270px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero:after{content:"";position:absolute;right:150px;bottom:-110px;width:210px;height:210px;border-radius:50%;background:rgba(255,255,255,.06)}
+.hero .ola{font-size:.76rem;letter-spacing:1.2px;text-transform:uppercase;color:#BFE6F6;font-weight:700;position:relative;z-index:1}
+.hero h2{color:#fff !important;margin:.1rem 0 .35rem;padding:0;font-size:1.8rem;font-weight:800;letter-spacing:-.4px;position:relative;z-index:1}
+.hero p{margin:0;color:#D6E8F7;font-size:.9rem;max-width:660px;line-height:1.45;position:relative;z-index:1}
+.hero .data{position:absolute;right:1.5rem;top:1.2rem;z-index:1;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:.28rem .8rem;border-radius:999px;font-size:.76rem;font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.85rem;margin-bottom:1rem}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:#fff;border-radius:16px;padding:.95rem 1.05rem;display:flex;align-items:center;gap:.85rem;box-shadow:0 2px 10px rgba(4,44,89,.08);border:1px solid #E3EAF4;transition:transform .15s,box-shadow .15s}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(4,44,89,.14)}
+.kpi .ico{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex:0 0 auto;color:#fff}
+.kpi .n{font-size:1.85rem;font-weight:800;line-height:1;color:var(--azul)}
+.kpi .l{font-size:.7rem;letter-spacing:.7px;text-transform:uppercase;color:var(--suave);font-weight:700;margin-top:.3rem}
+.kpi.a .ico{background:linear-gradient(135deg,#01A0D6,#0170A3)}
+.kpi.b .ico{background:linear-gradient(135deg,#7C5CFC,#5B3FD6)}
+.kpi.c .ico{background:linear-gradient(135deg,#19B394,#0E8F76)}
+.kpi.d .ico{background:linear-gradient(135deg,#FF7A59,#E5484D)}
+.kpi.d.ok .ico{background:linear-gradient(135deg,#19B394,#0E8F76)}
+.lau-cont{color:var(--suave);font-size:.85rem;padding-top:.45rem}
+.lau-cont b{color:var(--azul)}
+[class*="st-key-card_"]{background:#fff;border:1px solid #E3EAF4;border-radius:16px;padding:.9rem 1rem .8rem 1.15rem !important;box-shadow:0 2px 10px rgba(4,44,89,.07);transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden;gap:.45rem !important}
+[class*="st-key-card_"]:hover{transform:translateY(-3px);box-shadow:0 14px 28px rgba(4,44,89,.17)}
+[class*="st-key-card_"]:before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#19B394}
+[class*="st-key-card_alerta_"]:before{background:#E5484D}
+[class*="st-key-card_"] .stButton>button{padding:.3rem .45rem;font-size:.8rem;min-height:0}
+.lc-top{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.35rem}
+.lc-emp{display:inline-flex;align-items:center;gap:.4rem;font-size:.7rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--suave);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lc-emp i{width:9px;height:9px;border-radius:50%;display:inline-block;flex:0 0 auto}
+.lc-badge{font-size:.68rem;font-weight:800;padding:.18rem .6rem;border-radius:999px;white-space:nowrap}
+.lc-badge.ok{background:#E3F6EF;color:#0E7A60}
+.lc-badge.bad{background:#FDE4E5;color:#B42328}
+.lc-fn{font-size:1.12rem;font-weight:800;color:var(--azul);line-height:1.2;letter-spacing:-.2px;margin-bottom:.15rem}
+.lc-sub{font-size:.82rem;color:var(--suave);margin-bottom:.55rem;min-height:1.1em}
+.lc-chips{margin-bottom:.3rem}
+.lc-chip{display:inline-flex;align-items:center;font-size:.7rem;font-weight:700;padding:.2rem .55rem;border-radius:999px;margin:0 .3rem .3rem 0}
+.lc-chip.ok{background:#E3F6EF;color:#0E7A60}
+.lc-chip.warn{background:#FFF1D6;color:#9A6200}
+.lc-chip.bad{background:#FDE4E5;color:#B42328}
+.lc-chip.neutral{background:#EAF0F8;color:#4A5C78}
+.lc-data{font-size:.76rem;color:var(--suave);margin-bottom:.1rem}
+.vazio{text-align:center;background:#fff;border:2px dashed #B9C7DB;border-radius:18px;padding:2.4rem 1rem;margin-top:.6rem}
+.vazio .em{font-size:2.6rem;margin-bottom:.3rem}
+.vazio h3{margin:.1rem 0 .3rem;color:var(--azul)}
+.vazio p{margin:0;color:var(--suave)}
 </style>
 """
 st.markdown(ESTILO, unsafe_allow_html=True)
@@ -524,28 +570,163 @@ if "msg" not in st.session_state:
     st.session_state.msg = None
 
 # ================================================================== LAUDOS
+from html import escape as _h0
+
+_PALETA = ["#01A0D6", "#7C5CFC", "#19B394", "#F0801A", "#E5484D", "#3B82F6"]
+
+
+def _h(t):
+    return _h0(str(t or ""))
+
+
+def _chips_laudo(l):
+    """Etiquetas (classe, texto) do resumo do laudo e se o resultado é 'acima do limite' (caracteriza)."""
+    ch = []
+    r = l.get("ruido") or {}
+    nv = num(r.get("nen")) if r.get("nen") not in (None, "") else None
+    if nv is not None:
+        ch.append(("bad" if nv > 85 else ("warn" if nv >= 80 else "ok"), f"🔊 Ruído {r.get('nen')} dB(A)"))
+    c = l.get("calor") or {}
+    calor_acima = False
+    if c.get("rows"):
+        calor_acima = any("acima" in str((list(x) + [""] * 6)[5]).lower() for x in c["rows"])
+        ch.append(("bad" if calor_acima else "ok", "🌡️ IBUTG " + ("acima do limite" if calor_acima else "dentro do limite")))
+    else:
+        ch.append(("neutral", "🌡️ Calor: sem fonte"))
+    q = l.get("quim") or {}
+    if q.get("res"):
+        ch.append(("ok", "🧪 Químicos: quantitativo"))
+    elif q.get("contato"):
+        ch.append(("warn", "🧪 Químicos: contato (EPI)"))
+    elif q.get("rows"):
+        ch.append(("warn", "🧪 Químicos: qualitativo"))
+    else:
+        ch.append(("neutral", "🧪 Químicos: sem exposição"))
+    if l.get("vib_tab"):
+        ch.append(("neutral", "📳 Vibração avaliada"))
+    if l.get("epi_usa") and l.get("epi_lista"):
+        ch.append(("ok", f"🦺 EPI: {len(l['epi_lista'])} item(ns)"))
+    else:
+        ch.append(("neutral", "🦺 Sem EPI"))
+    return ch, bool((nv is not None and nv > 85) or calor_acima)
+
+
+def _card_laudo(l, E, chips, acima):
+    emp = E.get(l.get("empresa_id"), {})
+    cor = _PALETA[sum(map(ord, str(l.get("empresa_id")))) % len(_PALETA)]
+    sub = " · ".join(x for x in [l.get("setor") or "", l.get("unidade") or ""] if x)
+    badge = ('<span class="lc-badge bad">⚠ Caracteriza</span>' if acima else '<span class="lc-badge ok">✔ Não caracteriza</span>')
+    chips_html = "".join(f'<span class="lc-chip {c}">{_h(t)}</span>' for c, t in chips)
+    return ('<div class="lc-top"><span class="lc-emp"><i style="background:' + cor + '"></i>' + _h(emp.get("nome_curto", "?")) + '</span>' + badge + '</div>'
+            '<div class="lc-fn">' + _h(l.get("nome")) + '</div>'
+            '<div class="lc-sub">' + (_h(sub) or "&nbsp;") + '</div>'
+            '<div class="lc-chips">' + chips_html + '</div>'
+            '<div class="lc-data">📅 ' + _h(l.get("data_laudo")) + '</div>')
+
+
+def _duplicar_laudo(i, L):
+    c = copy.deepcopy(L[i])
+    c["id"] = f"{i}_copia"
+    c["nome"] = L[i]["nome"] + " (cópia)"
+    store.salvar("laudo", c["id"], c)
+    st.session_state.msg = "Laudo duplicado."
+    st.rerun()
+
+
+def _pedir_exclusao(i):
+    st.session_state.confirma_excluir = i
+
+
+def _cancelar_exclusao():
+    st.session_state.confirma_excluir = None
+
+
 if pagina == "Laudos":
-    st.title("Laudos")
     L, E = laudos(), empresas()
-    k1, k2, k3 = st.columns(3)
-    k1.metric("Laudos cadastrados", len(L))
-    k2.metric("Empresas", len(E))
-    k3.metric("Funções avaliadas", len({(l.get("empresa_id"), l.get("nome")) for l in L.values()}))
-    c1, c2 = st.columns([3, 1])
-    with c2:
+    _stat = {i: _chips_laudo(l) for i, l in L.items()}
+    n_acima = sum(1 for v in _stat.values() if v[1])
+    n_func = len({(l.get("empresa_id"), l.get("nome")) for l in L.values()})
+    ola = (st.session_state.get("_ltcat_nome") or "").split(" ")[0]
+    st.markdown(
+        '<div class="hero"><div class="data">📅 ' + data_extenso(date.today()) + '</div>'
+        '<div class="ola">' + ("Olá, " + _h(ola) + " 👋" if ola else "Bem-vindo 👋") + '</div>'
+        '<h2>Laudos LTCAT</h2>'
+        '<p>Laudos técnicos das condições ambientais do trabalho por função, unidade e empresa — ruído, calor, vibração, químicos e EPI, com prévia do PDF antes de emitir.</p></div>'
+        '<div class="kpis">'
+        '<div class="kpi a"><div class="ico">📑</div><div><div class="n">' + str(len(L)) + '</div><div class="l">Laudos cadastrados</div></div></div>'
+        '<div class="kpi b"><div class="ico">🏢</div><div><div class="n">' + str(len(E)) + '</div><div class="l">Empresas</div></div></div>'
+        '<div class="kpi c"><div class="ico">👷</div><div><div class="n">' + str(n_func) + '</div><div class="l">Funções avaliadas</div></div></div>'
+        '<div class="kpi ' + ('d' if n_acima else 'd ok') + '"><div class="ico">' + ('⚠️' if n_acima else '✅') + '</div><div><div class="n">' + str(n_acima)
+        + '</div><div class="l">Acima do limite</div></div></div>'
+        '</div>', unsafe_allow_html=True)
+
+    t1, t2, t3, t4 = st.columns([2.6, 1.5, 1.4, 1.1])
+    busca = t1.text_input("Buscar", placeholder="🔎  Buscar por função, setor, unidade ou empresa", label_visibility="collapsed", key="lau_busca")
+    emp_f = t2.selectbox("Empresa", ["__todas__"] + list(E), format_func=lambda i: "🏢 Todas as empresas" if i == "__todas__" else E[i]["nome_curto"],
+                         label_visibility="collapsed", key="lau_emp")
+    ordem = t3.selectbox("Ordenar", ["Função (A–Z)", "Mais recentes", "Setor (A–Z)"], label_visibility="collapsed", key="lau_ord")
+    with t4:
         if E:
-            st.button("➕ Novo laudo", width='stretch', on_click=ir_editar, args=("__novo__", False, list(E)[0]))
+            st.button("➕ Novo laudo", type="primary", width='stretch', on_click=ir_editar, args=("__novo__", False, list(E)[0]))
         else:
             st.error("Cadastre uma empresa primeiro.")
+
+    itens = list(L.values())
+    q_b = _norm(busca)
+    if q_b:
+        itens = [l for l in itens if q_b in _norm(" ".join([str(l.get("nome", "")), str(l.get("setor", "")), str(l.get("unidade", "")),
+                                                            E.get(l.get("empresa_id"), {}).get("nome_curto", "")]))]
+    if emp_f != "__todas__":
+        itens = [l for l in itens if l.get("empresa_id") == emp_f]
+    if ordem == "Mais recentes":
+        itens.sort(key=lambda l: parse_data(l.get("data_laudo")), reverse=True)
+    elif ordem == "Setor (A–Z)":
+        itens.sort(key=lambda l: (_norm(l.get("setor")), _norm(l.get("nome"))))
+    else:
+        itens.sort(key=lambda l: _norm(l.get("nome")))
+
+    v1, v2 = st.columns([3, 1.2])
+    v1.markdown('<div class="lau-cont"><b>' + str(len(itens)) + '</b> laudo(s)' + (' · filtrado' if (q_b or emp_f != "__todas__") else '') + '</div>',
+                unsafe_allow_html=True)
+    vis = v2.radio("Exibir", ["Cartões", "Tabela"], horizontal=True, label_visibility="collapsed", key="lau_vis")
+
     if not L:
-        st.info("Nenhum laudo cadastrado.")
+        st.markdown('<div class="vazio"><div class="em">📄</div><h3>Nenhum laudo ainda</h3>'
+                    '<p>Clique em <b>➕ Novo laudo</b> ou use <b>🧩 Montar laudo</b> para criar o primeiro a partir dos documentos.</p></div>',
+                    unsafe_allow_html=True)
+    elif not itens:
+        st.markdown('<div class="vazio"><div class="em">🔎</div><h3>Nada encontrado</h3><p>Nenhum laudo combina com a busca ou o filtro de empresa.</p></div>',
+                    unsafe_allow_html=True)
+    elif vis == "Cartões":
+        for ini in range(0, len(itens), 3):
+            cols = st.columns(3)
+            for col, l in zip(cols, itens[ini:ini + 3]):
+                i = l["id"]
+                chips, acima = _stat[i]
+                with col:
+                    with st.container(key=f"card_{'alerta' if acima else 'ok'}_{i}"):
+                        st.markdown(_card_laudo(l, E, chips, acima), unsafe_allow_html=True)
+                        b1, b2, b3, b4 = st.columns([1.35, 1.1, .75, .75])
+                        b1.button("✏️ Editar", key=f"lc_ed_{i}", type="primary", width='stretch', on_click=ir_editar, args=(i,))
+                        b2.button("📄 PDF", key=f"lc_pdf_{i}", width='stretch', on_click=ir_editar, args=(i, True))
+                        if b3.button("📋", key=f"lc_dup_{i}", width='stretch', help="Duplicar este laudo"):
+                            _duplicar_laudo(i, L)
+                        b4.button("🗑️", key=f"lc_del_{i}", width='stretch', help="Excluir este laudo", on_click=_pedir_exclusao, args=(i,))
+                        if st.session_state.get("confirma_excluir") == i:
+                            st.warning(f"Excluir o laudo de {l['nome']}? Não dá para desfazer.")
+                            x1, x2 = st.columns(2)
+                            if x1.button("Confirmar", key=f"lc_ok_{i}", type="primary", width='stretch'):
+                                store.excluir("laudo", i)
+                                st.session_state.confirma_excluir = None
+                                st.rerun()
+                            x2.button("Cancelar", key=f"lc_no_{i}", width='stretch', on_click=_cancelar_exclusao)
     else:
         df = pd.DataFrame([{"Função": l["nome"], "Setor": l["setor"], "Unidade": l.get("unidade", ""),
-                            "Empresa": E.get(l["empresa_id"], {}).get("nome_curto", "?"), "Data": l["data_laudo"], "ID": l["id"]} for l in L.values()])
+                            "Empresa": E.get(l["empresa_id"], {}).get("nome_curto", "?"), "Data": l["data_laudo"], "ID": l["id"]} for l in itens])
         st.caption("Clique em uma linha para selecionar o laudo e use os botões abaixo.")
         ev = st.dataframe(df, width='stretch', hide_index=True, on_select="rerun", selection_mode="single-row", key="tab_laudos")
         linhas_sel = ev.selection.rows if ev is not None and getattr(ev, "selection", None) else []
-        ids = list(L)
+        ids = [l["id"] for l in itens]
         if linhas_sel:
             escolha = df.iloc[linhas_sel[0]]["ID"]
             st.success(f"Selecionado: **{L[escolha]['nome']}** ({L[escolha]['data_laudo']}) — arquivo `{escolha}`")
@@ -555,12 +736,7 @@ if pagina == "Laudos":
         b1.button("✏️ Editar", width='stretch', on_click=ir_editar, args=(escolha,))
         b2.button("📄 Gerar PDF", width='stretch', on_click=ir_editar, args=(escolha, True))
         if b3.button("📋 Duplicar", width='stretch'):
-            c = copy.deepcopy(L[escolha])
-            c["id"] = f"{escolha}_copia"
-            c["nome"] = L[escolha]["nome"] + " (cópia)"
-            store.salvar("laudo", c["id"], c)
-            st.session_state.msg = "Laudo duplicado."
-            st.rerun()
+            _duplicar_laudo(escolha, L)
         if b4.button("🗑️ Excluir", width='stretch'):
             st.session_state.confirma_excluir = escolha
         if st.session_state.get("confirma_excluir") == escolha:
